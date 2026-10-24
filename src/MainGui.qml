@@ -9,13 +9,14 @@ import Qt.labs.qmlmodels
 ApplicationWindow {
     id: mainGui
     title: "HyperspectralSpeckleGUI"
-    width: 1600
-    height: 950
-    minimumWidth: width
-    maximumWidth: width
-    minimumHeight: height
-    maximumHeight: height
+    width: 1650
+    height: 1075
+    minimumWidth: 1650
+    minimumHeight: 1075
     visible: true
+
+    property int textFieldWidth: 125
+    property int textWidth: 175
 
     SystemPalette { 
         id: sysPalette
@@ -26,12 +27,13 @@ ApplicationWindow {
     Component.onCompleted: {
         observables.windowColor = sysPalette.mid.toString();
         observables.windowText = sysPalette.windowText.toString();
+        observables.windowDarkColor = sysPalette.dark.toString();
 
         var tableRows = []
         for (var ix = 0; ix < observables.layerHeights.length; ix++) {
             tableRows[ix] = {
                 "layer": ix+1,
-                "height": observables.layerHeights[ix],
+                "height": observables.layerHeights[ix] * 1e-3,
                 "windSpeed": observables.windSpeed[ix],
                 "windDirection": observables.windDirection[ix],
                 "seed": observables.randomSeed[ix]
@@ -108,7 +110,7 @@ ApplicationWindow {
             spacing: 5
 
             Rectangle{
-                Layout.preferredWidth: 450
+                Layout.preferredWidth: 475
                 Layout.preferredHeight: columnLayoutOptics.childrenRect.height + 10
                 Layout.alignment: Qt.AlignTop
                 color: sysPalette.mid
@@ -144,16 +146,20 @@ ApplicationWindow {
                         Text {
                             id: apertureDiameterText
                             text: qsTr("Aperture Diameter")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
                             id: apertureDiameterTextField
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.apertureDiameter
-                            onAccepted: {
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.apertureDiameter = parseFloat(text)
                             }
                         }
@@ -167,15 +173,20 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Obscuration Fraction")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.obscurationFraction
-                            onAccepted: {
+                            validator: DoubleValidator {
+                                bottom: 0
+                                top: 1
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.obscurationFraction = parseFloat(text)
                             }
                         }
@@ -188,15 +199,19 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Field of view")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.fieldOfView
-                            onAccepted: {
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.fieldOfView = parseFloat(text)
                             }
                         }
@@ -207,16 +222,28 @@ ApplicationWindow {
                             color: sysPalette.windowText
                         }
 
-                        Rectangle {
-                            color: sysPalette.dark
-                            Layout.preferredWidth: parent.width - 5
-                            Layout.preferredHeight: 2
+                        RowLayout {
                             Layout.columnSpan: 3
+
+                            Text {
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: sysPalette.windowText
+                                Layout.alignment: Qt.AlignBaseline
+                                text: qsTr("Detectors")
+                            }
+
+                            Rectangle {
+                                color: sysPalette.windowText
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 1
+                                Layout.alignment: Qt.AlignBaseline
+                            }
                         }
 
                         Text {
                             text: qsTr("Image Datatype")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
@@ -233,16 +260,19 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Read Noise")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: 75
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.readNoise
-                            onAccepted: {
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.readNoise = parseFloat(text)
                             }
                         }
@@ -255,16 +285,22 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Well depth")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
-                            text: observables.wellDepth
-                            onAccepted: {
-                                observables.wellDepth = parseInt(text);
+                            text: qsTr(observables.wellDepth.toString())
+                            validator: DoubleValidator {
+                                bottom: 0
+                                decimals: 0
+                                // notation: DoubleValidator.StandardNotation
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
+                                observables.wellDepth = parseFloat(text);
                             }
                         }
 
@@ -276,15 +312,15 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Gain")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             readOnly: true
-                            text: observables.gain
+                            text: Math.round(observables.gain * 100) / 100
                             enabled: false
                         }
 
@@ -296,16 +332,20 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Exposure Time")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
-                            text: observables.exposureTime
-                            onAccepted: {
-                                observables.exposureTime = parseFloat(text)
+                            text: observables.exposureTime * 1e3
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
+                                observables.exposureTime = parseFloat(text) * 1e-3
                             }
                         }
 
@@ -317,13 +357,13 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Quantum Efficiency")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         Loader {
                             id: qeLoader
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             sourceComponent: qeComboBox.currentValue == "Uniform" ? qeUniformTextField : qeFromFileButton
                         }
 
@@ -331,10 +371,15 @@ ApplicationWindow {
                             id: qeUniformTextField
                             TextField {
                                 id: qeUniformTextField
-                                Layout.fillWidth: true
+                                Layout.preferredWidth: textFieldWidth
                                 color: sysPalette.windowText
                                 text: observables.quantumEfficiency
-                                onAccepted: {
+                                validator: DoubleValidator {
+                                    bottom: 0
+                                    top: 1
+                                }
+                                onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                                onEditingFinished: {
                                     observables.quantumEfficiency = parseFloat(text)
                                 }
                             }
@@ -343,7 +388,7 @@ ApplicationWindow {
                         Component {
                             id: qeFromFileButton
                             Button {
-                                Layout.fillWidth: true
+                                Layout.preferredWidth: textFieldWidth
                                 text: qsTr("Open")
                             }
                         }
@@ -355,20 +400,210 @@ ApplicationWindow {
                             model: ["Uniform", "From File"]
                         }
 
-                        Rectangle {
-                            color: sysPalette.dark
-                            Layout.preferredWidth: parent.width - 5
-                            Layout.preferredHeight: 2
+                        RowLayout {
                             Layout.columnSpan: 3
+
+                            Text {
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: (fullApCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                                Layout.alignment: Qt.AlignBaseline
+                                text: qsTr("Full Aperture Channel")
+                            }
+
+                            Rectangle {
+                                color: (fullApCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 1
+                                Layout.alignment: Qt.AlignBaseline
+                            }
+
+                            CheckBox {
+                                id: fullApCheckBox
+                                checked: observables.enableFullAp
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("Enable")
+
+                                indicator: Rectangle {
+                                    implicitWidth: 20
+                                    implicitHeight: 20
+                                    x: fullApCheckBox.leftPadding
+                                    y: parent.height / 2 - height / 2
+                                    radius: 3
+                                    border.color: sysPalette.windowText
+                                    border.width: 1
+                                    color: sysPalette.midlight
+
+                                    Rectangle {
+                                        width: 12
+                                        height: 12
+                                        x: parent.width/2 - width/2
+                                        y: parent.height/2 - height/2
+                                        radius: 3
+                                        color: sysPalette.windowText
+                                        visible: fullApCheckBox.checked
+                                    }
+                                }
+
+                                onCheckedChanged: {
+                                    observables.enableFullAp = checked;
+                                }
+                            }
+                        }
+                        
+                        Text {
+                            text: qsTr("Response")
+                            Layout.preferredWidth: textWidth
+                            Layout.minimumWidth: implicitWidth
+                            color: (fullApCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                        }
+
+                        Loader {
+                            id: responseFullApLoader
+                            Layout.preferredWidth: textFieldWidth
+                            sourceComponent: responseFullApComboBox.currentValue == "Uniform" ? responseFullApUniformTextField : responseFullApFromFileButton
+                        }
+
+                        Component {
+                            id: responseFullApUniformTextField
+                            TextField {
+                                Layout.preferredWidth: textFieldWidth
+                                color: (fullApCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                                enabled: fullApCheckBox.checked
+                                text: (observables.responseFullAp.length == 1) ? observables.responseFullAp[0] : ""
+                                validator: DoubleValidator {
+                                    bottom: 0
+                                    top: 1
+                                }
+                                onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                                onEditingFinished: {
+                                    observables.responseFullAp = parseFloat(text)
+                                }
+                            }
+                        }
+
+                        FileDialog {
+                            id: responseFullApFileDialog
+                            onAccepted: {
+                                var pathToFile = selectedFile.toString().replace("file://", "");
+                                Julia.loadFullApResponseData(pathToFile);
+                                imagesTabBar.currentIndex = 3;
+                            }
+                        }
+
+                        Component {
+                            id: responseFullApFromFileButton
+                            Button {
+                                enabled: fullApCheckBox.checked
+                                Layout.preferredWidth: textFieldWidth
+                                text: qsTr("Open")
+                                onClicked: {
+                                    responseFullApFileDialog.open();
+                                }
+                            }
+                        }
+
+                        ComboBox {
+                            Layout.fillWidth: true
+                            enabled: fullApCheckBox.checked
+                            implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
+                            id: responseFullApComboBox
+                            model: ["Uniform", "From File"]
+                        }
+
+                        Text {
+                            text: qsTr("Static Phase (FITS)")
+                            Layout.preferredWidth: textWidth
+                            Layout.minimumWidth: implicitWidth
+                            color: (fullApCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                        }
+
+                        TextField {
+                            id: staticPhaseFullApTextField
+                            enabled: fullApCheckBox.checked
+                            Layout.preferredWidth: textFieldWidth
+                            color: (fullApCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                            placeholderText: qsTr("(Optional)")
+                        }
+
+                        Button {
+                            Layout.fillWidth: true
+                            enabled: fullApCheckBox.checked
+                            text: qsTr("Open")
+                            onClicked: {
+                                staticPhaseFullApFileDialog.open();
+                            }
+                        }
+
+                        FileDialog {
+                            id: staticPhaseFullApFileDialog
+                            onAccepted: {
+                                var pathToFile = selectedFile.toString().replace("file://", "");
+                                staticPhaseFullApTextField.text = pathToFile;
+                                imagesTabBar.currentIndex = 2;
+                            }
+                        }
+                
+                        RowLayout {
+                            Layout.columnSpan: 3
+
+                            Text {
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                                Layout.alignment: Qt.AlignBaseline
+                                text: qsTr("Wavefront Sensor Channel")
+                            }
+
+                            Rectangle {
+                                color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 1
+                                Layout.alignment: Qt.AlignBaseline
+                            }
+
+                            CheckBox {
+                                id: wfsCheckBox
+                                checked: observables.enableWfs
+                                Layout.alignment: Qt.AlignRight
+                                text: qsTr("Enable")
+
+                                indicator: Rectangle {
+                                    implicitWidth: 20
+                                    implicitHeight: 20
+                                    x: wfsCheckBox.leftPadding
+                                    y: parent.height / 2 - height / 2
+                                    radius: 3
+                                    border.color: sysPalette.windowText
+                                    border.width: 1
+                                    color: sysPalette.midlight
+
+                                    Rectangle {
+                                        width: 12
+                                        height: 12
+                                        x: parent.width/2 - width/2
+                                        y: parent.height/2 - height/2
+                                        radius: 3
+                                        color: sysPalette.windowText
+                                        visible: wfsCheckBox.checked
+                                    }
+                                }
+
+                                onCheckedChanged: {
+                                    observables.enableWfs = checked;
+                                }
+                            }
                         }
 
                         Text {
                             text: qsTr("Wavefront Sensor Type")
-                            Layout.fillWidth: true
-                            color: sysPalette.windowText
+                            Layout.preferredWidth: textWidth
+                            color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         ComboBox {
+                            id: wfsTypeComboBox
+                            enabled: wfsCheckBox.checked
                             Layout.columnSpan: 2
                             Layout.fillWidth: true
                             implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
@@ -380,94 +615,58 @@ ApplicationWindow {
                         }
 
                         Text {
-                            text: qsTr("Microlens Array Length")
-                            Layout.fillWidth: true
-                            color: sysPalette.windowText
+                            text: (wfsTypeComboBox.currentValue == "Shack-Hartmann") ? qsTr("Microlens Array Size") : qsTr("Pyramid Facets")
+                            Layout.preferredWidth: textWidth
+                            color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         TextField {
-                            Layout.fillWidth: true
-                            color: sysPalette.windowText
+                            enabled: wfsCheckBox.checked
+                            Layout.preferredWidth: textFieldWidth
+                            color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                             text: observables.microlensArrayLength
-                            onAccepted: {
+                            validator: IntValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.microlensArrayLength = parseInt(text)
                             }
                         }
 
                         Text {
-                            text: qsTr("lenslets")
+                            text: (wfsTypeComboBox.currentValue == "Shack-Hartmann") ? qsTr("lenslets") : qsTr("")
                             Layout.fillWidth: true
-                            color: sysPalette.windowText
-                        }
-
-                        Rectangle {
-                            color: sysPalette.dark
-                            Layout.preferredWidth: parent.width - 5
-                            Layout.preferredHeight: 2
-                            Layout.columnSpan: 3
-                        }
-                        
-                        Text {
-                            text: qsTr("Transmission (Full Aperture)")
-                            Layout.fillWidth: true
-                            Layout.minimumWidth: implicitWidth
-                            color: sysPalette.windowText
-                        }
-
-                        Loader {
-                            id: responseFullApLoader
-                            Layout.fillWidth: true
-                            sourceComponent: responseFullApComboBox.currentValue == "Uniform" ? responseFullApUniformTextField : responseFullApFromFileButton
-                        }
-
-                        Component {
-                            id: responseFullApUniformTextField
-                            TextField {
-                                Layout.fillWidth: true
-                                color: sysPalette.windowText
-                                text: observables.transmissionFullAp
-                                onAccepted: {
-                                    observables.transmissionFullAp = parseFloat(text)
-                                }
-                            }
-                        }
-
-                        Component {
-                            id: responseFullApFromFileButton
-                            Button {
-                                Layout.fillWidth: true
-                                text: qsTr("Open")
-                            }
-                        }
-
-                        ComboBox {
-                            Layout.fillWidth: true
-                            implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
-                            id: responseFullApComboBox
-                            model: ["Uniform", "From File"]
+                            color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         Text {
-                            text: qsTr("Transmission (Wavefront Sensor)")
-                            Layout.fillWidth: true
+                            text: qsTr("Response")
+                            Layout.preferredWidth: textWidth
                             Layout.minimumWidth: implicitWidth
-                            color: sysPalette.windowText
+                            color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         Loader {
                             id: responseWfsLoader
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             sourceComponent: responseWfsComboBox.currentValue == "Uniform" ? responseWfsUniformTextField : responseWfsFromFileButton
                         }
 
                         Component {
                             id: responseWfsUniformTextField
                             TextField {
-                                Layout.fillWidth: true
-                                color: sysPalette.windowText
-                                text: observables.transmissionWfs
-                                onAccepted: {
-                                    observables.transmissionWfs = parseFloat(text)
+                                enabled: wfsCheckBox.checked
+                                Layout.preferredWidth: textFieldWidth
+                                color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                                text: (observables.responseWfs.length == 1) ? observables.responseWfs[0] : ""
+                                validator: DoubleValidator {
+                                    bottom: 0
+                                    top: 1
+                                }
+                                onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                                onEditingFinished: {
+                                    observables.responseWfs = parseFloat(text)
                                 }
                             }
                         }
@@ -475,16 +674,63 @@ ApplicationWindow {
                         Component {
                             id: responseWfsFromFileButton
                             Button {
-                                Layout.fillWidth: true
+                                enabled: wfsCheckBox.checked
+                                Layout.preferredWidth: textFieldWidth
                                 text: qsTr("Open")
+                                onClicked: {
+                                    responseWfsFileDialog.open();
+                                }
+                            }
+                        }
+
+                        FileDialog {
+                            id: responseWfsFileDialog
+                            onAccepted: {
+                                var pathToFile = selectedFile.toString().replace("file://", "");
+                                Julia.loadWfsResponseData(pathToFile);
+                                imagesTabBar.currentIndex = 3;
                             }
                         }
 
                         ComboBox {
+                            enabled: wfsCheckBox.checked
                             Layout.fillWidth: true
                             implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
                             id: responseWfsComboBox
                             model: ["Uniform", "From File"]
+                        }
+
+                        Text {
+                            text: qsTr("Static Phase (FITS)")
+                            Layout.preferredWidth: textWidth
+                            Layout.minimumWidth: implicitWidth
+                            color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                        }
+
+                        TextField {
+                            enabled: wfsCheckBox.checked
+                            id: staticPhaseWfsTextField
+                            color: (wfsCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                            Layout.preferredWidth: textFieldWidth
+                            placeholderText: qsTr("(Optional)")
+                        }
+
+                        Button {
+                            enabled: wfsCheckBox.checked
+                            Layout.fillWidth: true
+                            text: qsTr("Open")
+                            onClicked: {
+                                staticPhaseWfsFileDialog.open();
+                            }
+                        }
+
+                        FileDialog {
+                            id: staticPhaseWfsFileDialog
+                            onAccepted: {
+                                var pathToFile = selectedFile.toString().replace("file://", "");
+                                staticPhaseWfsTextField.text = pathToFile;
+                                imagesTabBar.currentIndex = 2;
+                            }
                         }
 
                         CheckBox {
@@ -531,7 +777,7 @@ ApplicationWindow {
             }
 
             Rectangle{
-                Layout.preferredWidth: 450
+                Layout.preferredWidth: 475
                 Layout.preferredHeight: columnLayoutAtmosphere.childrenRect.height + 10
                 Layout.alignment: Qt.AlignTop
                 color: sysPalette.mid
@@ -563,17 +809,21 @@ ApplicationWindow {
                         Layout.fillWidth: true
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Reference wavelength")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
-                            text: observables.refWavelength
-                            onAccepted: {
-                                observables.refWavelength = parseFloat(text)
+                            text: qsTr((observables.refWavelength * 1e9).toFixed(1))
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
+                                observables.refWavelength = parseFloat(text) * 1e-9
                             }
                         }
 
@@ -584,16 +834,20 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("D/r0")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.Dr0
-                            onAccepted: {
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.Dr0 = parseFloat(text)
                             }
                         }
@@ -605,17 +859,21 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Zenith Angle")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
-                            Layout.preferredWidth: 75
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.zenithAngle
-                            onAccepted: {
+                            validator: DoubleValidator {
+                                bottom: 0
+                                top: 90
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.zenithAngle = parseFloat(text)
                             }
                         }
@@ -628,34 +886,51 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Transmission")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             Layout.minimumWidth: implicitWidth
                             color: sysPalette.windowText
                         }
 
                         Loader {
                             id: atmosphericTransmissionLoader
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             sourceComponent: atmosphericTransmissionComboBox.currentValue == "Uniform" ? atmosphericTransmissionUniformTextField : atmosphericTransmissionFromFileButton
                         }
 
                         Component {
                             id: atmosphericTransmissionUniformTextField
                             TextField {
-                                Layout.fillWidth: true
+                                Layout.preferredWidth: textFieldWidth
                                 color: sysPalette.windowText
-                                text: observables.atmosphericTransmission
-                                onAccepted: {
+                                text: (observables.atmosphericTransmission.length == 1) ? observables.atmosphericTransmission[0] : "" 
+                                validator: DoubleValidator {
+                                    bottom: 0
+                                    top: 1
+                                }
+                                onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                                onEditingFinished: {
                                     observables.atmosphericTransmission = parseFloat(text)
                                 }
+                            }
+                        }
+
+                        FileDialog {
+                            id: atmosphericTransmissionFileDialog
+                            onAccepted: {
+                                var pathToFile = selectedFile.toString().replace("file://", "");
+                                Julia.loadAtmosphericTransmissionData(pathToFile);
+                                imagesTabBar.currentIndex = 3;
                             }
                         }
 
                         Component {
                             id: atmosphericTransmissionFromFileButton
                             Button {
-                                Layout.fillWidth: true
+                                Layout.preferredWidth: textFieldWidth
                                 text: qsTr("Open")
+                                onClicked: {
+                                    atmosphericTransmissionFileDialog.open();
+                                }
                             }
                         }
 
@@ -677,8 +952,7 @@ ApplicationWindow {
                         color: sysPalette.light
                         Layout.preferredHeight: childrenRect.height
                         Layout.preferredWidth: childrenRect.width
-                        // border.width: 1
-                        // border.color: sysPalette.dark
+                        Layout.alignment: Qt.AlignHCenter
 
                         ColumnLayout{
                             anchors.centerIn: parent
@@ -703,8 +977,6 @@ ApplicationWindow {
                                     implicitHeight: 20
                                     implicitWidth: cellText.implicitWidth + 5
                                     color: sysPalette.dark
-                                    // border.width: 1.5
-                                    // border.color: sysPalette.mid
 
                                     Text {
                                         id: cellText
@@ -729,10 +1001,7 @@ ApplicationWindow {
                                     columnSpacing: 0
                                     rowSpacing: 0
                                     clip: true
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    // anchors.fill: parent
+                                    anchors.centerIn: parent
                                     model: TableModel {
                                         id: layersModel
                                         TableModelColumn { display: "layer" }
@@ -745,7 +1014,7 @@ ApplicationWindow {
                                     }
 
                                     // Dynamically distribute width across your columns
-                                    property var columnWidths: [40, 75, 110, 125, 90]
+                                    property var columnWidths: [40, 80, 120, 130, 90]
                                     columnWidthProvider: function (column) {
                                         return columnWidths[column] || 100
                                     }
@@ -758,7 +1027,11 @@ ApplicationWindow {
                                         Text {
                                             id: cellText
                                             color: sysPalette.windowText
-                                            text: display
+                                            text: {
+                                                if (model.column == 0 || model.column == 4) return display;
+                                                else return display.toFixed(1);
+                                                
+                                            }
                                             anchors.centerIn: parent
                                         }
 
@@ -767,6 +1040,18 @@ ApplicationWindow {
                                             text: display
                                             horizontalAlignment: TextInput.AlignHCenter
                                             Component.onCompleted: selectAll()
+                                            validator: {
+                                                if (model.column == 0) return layerVal;
+                                                if (model.column == 1) return heightVal;
+                                                if (model.column == 2) return windSpeedVal;
+                                                if (model.column == 3) return windDirectionVal;
+                                                if (model.column == 4) return seedVal;
+                                            }
+                                            IntValidator { id: layerVal; bottom: 1 }
+                                            DoubleValidator { id: heightVal; bottom: 0; decimals: 2 }
+                                            DoubleValidator { id: windSpeedVal; bottom: 0.0; decimals: 2 }
+                                            DoubleValidator { id: windDirectionVal; bottom: -180.0; top: 180.0; decimals: 2 }
+                                            IntValidator { id: seedVal; bottom: 0 }
 
                                             TableView.onCommit: {
                                                 display = text
@@ -845,7 +1130,7 @@ ApplicationWindow {
             }
 
             Rectangle{
-                Layout.preferredWidth: 450
+                Layout.preferredWidth: 475
                 Layout.preferredHeight: columnLayoutDiversity.childrenRect.height + 10
                 Layout.alignment: Qt.AlignTop
                 color: sysPalette.mid
@@ -866,7 +1151,7 @@ ApplicationWindow {
                             text: qsTr("Diversity Phase")
                             font.pixelSize: 20
                             font.bold: true
-                            color: sysPalette.windowText
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                             horizontalAlignment: Text.AlignLeft
                         }
 
@@ -876,7 +1161,7 @@ ApplicationWindow {
 
                         CheckBox {
                             id: diversityCheckBox
-                            checked: false
+                            checked: observables.enableDiversity
                             Layout.alignment: Qt.AlignRight
                             text: qsTr("Enable")
 
@@ -900,6 +1185,10 @@ ApplicationWindow {
                                     visible: diversityCheckBox.checked
                                 }
                             }
+
+                            onCheckedChanged: {
+                                observables.enableDiversity = checked;
+                            }
                         }
                         
                     }
@@ -912,17 +1201,21 @@ ApplicationWindow {
                         Layout.fillWidth: true
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Zernike Index")
-                            color: sysPalette.windowText
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
-                            color: sysPalette.windowText
+                            Layout.preferredWidth: textFieldWidth
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                             text: observables.zernikeIndex
                             enabled: diversityCheckBox.checked
-                            onAccepted: {
+                            validator: IntValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.zernikeIndex = parseInt(text)
                             }
                         }
@@ -930,70 +1223,76 @@ ApplicationWindow {
                         Text {
                             Layout.preferredWidth: apertureDiameterUnitText.width
                             text: qsTr("(Noll)")
-                            color: sysPalette.windowText
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Num. of waves")
-                            color: sysPalette.windowText
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
-                            color: sysPalette.windowText
+                            Layout.preferredWidth: textFieldWidth
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                             text: observables.numWaves
                             enabled: diversityCheckBox.checked
-                            onAccepted: {
+                            validator: DoubleValidator {}
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.numWaves = parseFloat(text)
                             }
                         }
 
-                        Item {
-                            Layout.preferredWidth: apertureDiameterUnitText.width
-                        }
+                        Item {}
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Period")
-                            color: sysPalette.windowText
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
-                            color: sysPalette.windowText
-                            text: observables.diversityPeriod
+                            Layout.preferredWidth: textFieldWidth
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
+                            text: observables.diversityPeriod * 1e3
                             enabled: diversityCheckBox.checked
-                            onAccepted: {
-                                observables.diversityPeriod = parseFloat(text)
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
+                                observables.diversityPeriod = parseFloat(text) * 1e-3
                             }
                         }
 
                         Text {
                             Layout.preferredWidth: apertureDiameterUnitText.width
                             text: qsTr("ms")
-                            color: sysPalette.windowText
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Reference time")
-                            color: sysPalette.windowText
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
-                            color: sysPalette.windowText
+                            Layout.preferredWidth: textFieldWidth
+                            color: (diversityCheckBox.checked == true) ? sysPalette.windowText : Qt.rgba(sysPalette.windowText.r, sysPalette.windowText.g, sysPalette.windowText.b, 0.5)
                             text: observables.referenceTime
                             enabled: diversityCheckBox.checked
-                            onAccepted: {
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.referenceTime = parseFloat(text)
                             }
                         }
 
-                        Item {
-                            Layout.preferredWidth: apertureDiameterUnitText.width
-                        }
+                        Item {}
 
                     }
             
@@ -1014,8 +1313,9 @@ ApplicationWindow {
 
             Rectangle{
                 id: targetParametersRectangle
-                Layout.preferredWidth: 450
-                Layout.preferredHeight: columnLayoutObject.childrenRect.height + 10
+                Layout.preferredWidth: 475
+                Layout.fillHeight: true
+                // Layout.preferredHeight: columnLayoutObject.childrenRect.height + 10
                 Layout.alignment: Qt.AlignTop | Qt.AlignLeft
                 color: sysPalette.mid
                 radius: 5
@@ -1024,7 +1324,7 @@ ApplicationWindow {
 
                 ColumnLayout {
                     id: columnLayoutObject
-                    anchors.centerIn: parent
+                    anchors.fill: parent
                     anchors.margins: 5
                     spacing: 2.5
 
@@ -1047,16 +1347,18 @@ ApplicationWindow {
                         Layout.fillHeight: true
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Target Brightness")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.targetBrightness
-                            onAccepted: {
+                            validator: DoubleValidator {}
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.targetBrightness = parseFloat(text)
                             }
                         }
@@ -1068,16 +1370,18 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Background Brightness")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.backgroundBrightness
-                            onAccepted: {
+                            validator: DoubleValidator {}
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
                                 observables.backgroundBrightness = parseFloat(text)
                             }
                         }
@@ -1089,17 +1393,21 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Range")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
-                            text: observables.targetRange
-                            onAccepted: {
-                                observables.targetRange = parseFloat(text)
+                            text: observables.targetRange * 1e-3
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onAcceptableInputChanged: color = acceptableInput ? sysPalette.windowText : "red";
+                            onEditingFinished: {
+                                observables.targetRange = parseFloat(text) * 1e3
                             }
                         }
 
@@ -1110,15 +1418,16 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
-                            text: qsTr("Truth Image File (FITS)")
+                            Layout.preferredWidth: textWidth
+                            text: qsTr("Truth Image (FITS)")
                             color: sysPalette.windowText
                         }
 
                         TextField {
                             id: truthImageTextField
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
+                            placeholderText: qsTr("(Required)")
                         }
 
                         Button {
@@ -1132,8 +1441,9 @@ ApplicationWindow {
                         FileDialog {
                             id: targetFileDialog
                             onAccepted: {
-                                truthImageTextField.text = selectedFile.toString();
-                                Julia.loadTruthImage(selectedFile.toString());
+                                var pathToFile = selectedFile.toString().replace("file://", "");
+                                truthImageTextField.text = pathToFile;
+                                Julia.loadTruthImage(pathToFile);
                             }
                         }
 
@@ -1144,16 +1454,130 @@ ApplicationWindow {
                     }
 
                     Rectangle {
-                        Layout.preferredHeight: 300
-                        Layout.preferredWidth: 400
-                        Layout.alignment: Qt.AlignTop | Qt.AlignHCenter
+                        Layout.fillHeight: true
+                        Layout.fillWidth: true
                         color: sysPalette.dark
                         radius: 5
 
-                        MakieArea {
+                        ColumnLayout {
                             anchors.fill: parent
-                            scene: observables.targetFigureObs
+                            anchors.margins: 5
+                            spacing: 5
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 5
+
+                                Button {
+                                    Layout.preferredWidth: 30
+                                    Layout.preferredHeight: 30
+                                    icon.source: "assets/rotCCW.png"
+                                    onClicked: {
+                                        Julia.rotTargetCCW90()
+                                    }
+                                }
+
+                                Button {
+                                    Layout.preferredWidth: 30
+                                    Layout.preferredHeight: 30
+                                    icon.source: "assets/rotCW.png"
+                                    onClicked: {
+                                        Julia.rotTargetCW90()
+                                    }
+                                }
+
+                                Text {
+                                    font.pixelSize: 14
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignRight
+                                    text: qsTr("Colormap:")
+                                    color: sysPalette.windowText
+                                }
+
+                                ComboBox {
+                                    font.pixelSize: 14
+                                    implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
+                                    model: observables.availableColormaps
+                                    currentValue: observables.currentTargetColormap
+                                    onActivated: {
+                                        observables.currentTargetColormap = currentValue;
+                                    }
+                                }
+                            }
+
+                            MakieArea {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                scene: observables.targetFigureObs
+                            }
+                        
+                            GridLayout {                                        
+                                rows: 3
+                                columns: 3
+                                Layout.fillWidth: true
+                            
+                                Button {
+                                    Layout.rowSpan: 2
+                                    Layout.fillWidth: false
+                                    Layout.fillHeight: true
+                                    Layout.preferredWidth: implicitWidth / 2
+                                    flat: true
+                                    icon.source: "assets/left-icon.svg"
+                                    icon.color: sysPalette.light
+
+                                    onClicked: {
+                                        targetWavelengthSlider.value -= 1
+                                    }
+                                }
+                                
+                                Text {
+                                    text: qsTr("Wavelength")
+                                    color: sysPalette.windowText
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: 14
+                                    font.bold: true
+                                }
+
+                                Button {
+                                    Layout.rowSpan: 2
+                                    Layout.fillWidth: false
+                                    Layout.fillHeight: true
+                                    Layout.preferredWidth: implicitWidth / 2
+                                    flat: true
+                                    icon.source: "assets/right-icon.svg"
+                                    icon.color: sysPalette.light
+
+                                    onClicked: {
+                                        targetWavelengthSlider.value += 1
+                                    }
+                                }
+
+                                Text {
+                                    text: observables.truthTargetWavelengths[targetWavelengthSlider.value-1].toFixed(1) + qsTr("nm")
+                                    Layout.fillWidth: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    color: sysPalette.windowText
+                                    font.pixelSize: 12
+                                }
+
+                                Slider {
+                                    id: targetWavelengthSlider
+                                    Layout.fillWidth: true
+                                    Layout.columnSpan: 3
+                                    from: 1
+                                    to: observables.numWavelengthsTarget
+                                    value: observables.currentTargetWavelength
+                                    stepSize: 1  
+                                    onValueChanged: {
+                                        observables.currentTargetWavelength = value;
+                                    }
+                                }
+
+                            }
+
                         }
+                    
                     }
 
                     Item{
@@ -1165,8 +1589,9 @@ ApplicationWindow {
             }
 
             Rectangle{
-                Layout.preferredWidth: 450
-                Layout.preferredHeight: columnLayoutLeft.height - targetParametersRectangle.height - 5
+                Layout.preferredWidth: 475
+                Layout.preferredHeight: childrenRect.height + 10
+                // Layout.fillHeight: true
                 Layout.alignment: Qt.AlignTop | Qt.AlignLeft
                 color: sysPalette.mid
                 radius: 5
@@ -1269,6 +1694,10 @@ ApplicationWindow {
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: propagateCheckBox.indicator.width + propagateCheckBox.spacing
                             }
+
+                            onCheckedChanged: {
+                                observables.propagateLayers = checked;
+                            }
                         }
 
                         CheckBox {
@@ -1276,6 +1705,10 @@ ApplicationWindow {
                             checked: observables.simulateAnisoplanatic
                             Layout.alignment: Qt.AlignLeft
                             text: qsTr("Simulate Anisoplanatic")
+                            onCheckedChanged: {
+                                anisoPatchesTextField.enabled = checked;
+                                observables.simulateAnisoplanatic = checked;
+                            }
 
                             indicator: Rectangle {
                                 implicitWidth: 20
@@ -1305,19 +1738,18 @@ ApplicationWindow {
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: anisoCheckBox.indicator.width + anisoCheckBox.spacing
                             }
-
-                            onCheckedChanged: {
-                                anisoPatchesTextField.enabled = anisoCheckBox.checked
-                            }
                         }
 
 
                         TextField {
                             id: anisoPatchesTextField
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.patchSize
-                            onAccepted: {
+                            validator: IntValidator {
+                                bottom: 1
+                            }
+                            onEditingFinished: {
                                 observables.patchSize = parseInt(text)
                             }
                         }
@@ -1330,41 +1762,60 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Num. of timesteps")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.numTimesteps
-                            onAccepted: {
+                            validator: IntValidator {
+                                bottom: 1
+                            }
+                            onEditingFinished: {
                                 observables.numTimesteps = parseInt(text)
                             }
                         }
 
                         Item {}
 
-                        Rectangle {
-                            color: sysPalette.dark
-                            Layout.preferredWidth: parent.width - 5
-                            Layout.preferredHeight: 2
+                        RowLayout {
                             Layout.columnSpan: 3
+
+                            Text {
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: sysPalette.windowText
+                                Layout.alignment: Qt.AlignBaseline
+                                text: qsTr("Wavelength")
+                            }
+
+                            Rectangle {
+                                color: sysPalette.windowText
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 1
+                                Layout.alignment: Qt.AlignBaseline
+                            }
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Lower wavelength")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            id: lowerWavelengthTextField
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
-                            text: observables.lowerWavelength
-                            onAccepted: {
-                                observables.lowerWavelength = parseFloat(text)
+                            text: qsTr((observables.lowerWavelength * 1e9).toFixed(1))
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onEditingFinished: {
+                                observables.lowerWavelength = parseFloat(text) * 1e-9
                             }
                         }
 
@@ -1375,17 +1826,21 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Upper wavelength")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            id: upperWavelengthTextField
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
-                            text: observables.upperWavelength
-                            onAccepted: {
-                                observables.upperWavelength = parseFloat(text)
+                            text: qsTr((observables.upperWavelength * 1e9).toFixed(1))
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onEditingFinished: {
+                                observables.upperWavelength = parseFloat(text) * 1e-9
                             }
                         }
 
@@ -1396,17 +1851,20 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
                             text: qsTr("Nyquist wavelength")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
-                            text: observables.nyquistWavelength
-                            onAccepted: {
-                                observables.nyquistWavelength = parseFloat(text)
+                            text: qsTr((observables.nyquistWavelength * 1e9).toFixed(1))
+                            validator: DoubleValidator {
+                                bottom: 0
+                            }
+                            onEditingFinished: {
+                                observables.nyquistWavelength = parseFloat(text) * 1e-9
                             }
                         }
 
@@ -1417,40 +1875,65 @@ ApplicationWindow {
                         }
 
                         Text {
-                            Layout.preferredWidth: apertureDiameterText.width
+                            Layout.preferredWidth: textWidth
+                            Layout.alignment: Qt.AlignTop
+
                             text: qsTr("Num. of wavelengths")
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.preferredWidth: apertureDiameterTextField.width
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.numWavelengths
-                            onAccepted: {
-                                observables.numWavelengths = parseInt(text)
+                            validator: IntValidator {
+                                bottom: 1
+                            }
+                            onEditingFinished: {
+                                observables.numWavelengths = parseInt(text);
                             }
                         }
 
-                        Item {}
+                        Text {
+                            id: numWavelengthsUnitsTextField
+                            Layout.preferredWidth: apertureDiameterUnitText.width
+                            color: sysPalette.windowText
+                            text: (parseInt(observables.numWavelengths) == 1) ? qsTr("") : qsTr("(") + Math.round(observables.spacingWavelength * 10) / 10 + qsTr("nm spacing; λ/Δλ=") + Math.round(observables.spectralResolution).toLocaleString() + (")");
+                        }
 
-                        Rectangle {
-                            color: sysPalette.dark
-                            Layout.preferredWidth: parent.width - 5
-                            Layout.preferredHeight: 2
+                        RowLayout {
                             Layout.columnSpan: 3
+
+                            Text {
+                                font.pixelSize: 14
+                                font.bold: true
+                                color: sysPalette.windowText
+                                Layout.alignment: Qt.AlignBaseline
+                                text: qsTr("Image Sizes")
+                            }
+
+                            Rectangle {
+                                color: sysPalette.windowText
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 1
+                                Layout.alignment: Qt.AlignBaseline
+                            }
                         }
 
                         Text {
                             text: qsTr("Image Size (Full Aperture)")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.imageSizeFullAp
-                            onAccepted: {
+                            validator: IntValidator {
+                                bottom: 0
+                            }
+                            onEditingFinished: {
                                 observables.imageSizeFullAp = parseInt(text)
                             }
                         }
@@ -1463,15 +1946,18 @@ ApplicationWindow {
 
                         Text {
                             text: qsTr("Image Size (Wavefront Sensor)")
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textWidth
                             color: sysPalette.windowText
                         }
 
                         TextField {
-                            Layout.fillWidth: true
+                            Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             text: observables.imageSizeWfs
-                            onAccepted: {
+                            validator: IntValidator {
+                                bottom: 0
+                            }
+                            onEditingFinished: {
                                 observables.imageSizeWfs = parseInt(text)
                             }
                         }
@@ -1484,17 +1970,15 @@ ApplicationWindow {
 
                     }
 
-
-                    Item{
-                        Layout.preferredHeight: 14
-                    }
-
                     Button {
                         Layout.preferredHeight: 50
                         Layout.fillWidth: true
                         text: qsTr("Simulate Images")
                         font.bold: true
                         font.pixelSize: 18
+                        onClicked: {
+                            Julia.runHyperspectralSpeckle();
+                        }
                     }
 
                 }
@@ -1509,13 +1993,13 @@ ApplicationWindow {
             Layout.bottomMargin: 5
             Layout.topMargin: 5
             Layout.fillWidth: true
+            Layout.fillHeight: true
             spacing: 5
 
             Rectangle{
                 id: rightBackgroundRectangle
                 Layout.fillWidth: true
-                // Layout.fillHeight: true
-                Layout.preferredHeight: 700
+                Layout.fillHeight: true
                 Layout.alignment: Qt.AlignTop
                 color: sysPalette.mid
                 radius: 5
@@ -1563,31 +2047,28 @@ ApplicationWindow {
                             Layout.fillHeight: true
 
                             RowLayout {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
+                                anchors.fill: parent
                                 spacing: 5
 
                                 Rectangle {
                                     id: imageryBackgroundRectangle
-                                    Layout.preferredWidth: columnLayoutImagery.width * 3/5
-                                    Layout.preferredHeight: childrenRect.height + 10
+                                    // Layout.preferredWidth: columnLayoutImagery.width * 3/5
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
                                     color: sysPalette.dark
                                     radius: 5
 
                                     ColumnLayout {
                                         id: slidersColumnLayout
-                                        anchors.top: imageryBackgroundRectangle.top
-                                        anchors.left: imageryBackgroundRectangle.left
-                                        anchors.right: imageryBackgroundRectangle.right
+                                        anchors.fill: parent
                                         anchors.margins: 5
                                         spacing: 2.5
 
-                                        Rectangle {
+                                        MakieArea {
                                             id: imageryMakieView
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: width
-                                            color: sysPalette.light
-                                            radius: 5
+                                            Layout.fillHeight: true
+                                            scene: observables.imagesFigureObs
                                         }
 
                                         RowLayout {
@@ -1597,6 +2078,27 @@ ApplicationWindow {
                                                 model: ["Full Aperture", "Wavefront Sensor"]
                                                 currentIndex: 0
                                                 font.pixelSize: 14
+                                            }
+
+                                            Item {
+                                                Layout.fillWidth: true
+                                            }
+
+                                            Text {
+                                                font.pixelSize: 14
+                                                horizontalAlignment: Text.AlignRight
+                                                text: qsTr("Colormap:")
+                                                color: sysPalette.windowText
+                                            }
+
+                                            ComboBox {
+                                                font.pixelSize: 14
+                                                implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
+                                                model: observables.availableColormaps
+                                                currentValue: observables.currentImagesColormap
+                                                onActivated: {
+                                                    observables.currentImagesColormap = currentValue;
+                                                }
                                             }
 
                                             Item {
@@ -1672,9 +2174,12 @@ ApplicationWindow {
                                                 Layout.fillWidth: true
                                                 Layout.columnSpan: 3
                                                 from: 1
-                                                to: 100
-                                                value: 1
-                                                stepSize: 1                            
+                                                to: observables.numTimesteps
+                                                value: observables.currentImageTimestep
+                                                stepSize: 1   
+                                                onValueChanged: {
+                                                    observables.currentImageTimestep = value;
+                                                }                         
                                             }
 
                                         }
@@ -1734,9 +2239,12 @@ ApplicationWindow {
                                                 Layout.fillWidth: true
                                                 Layout.columnSpan: 3
                                                 from: 1
-                                                to: 32
-                                                value: 1
-                                                stepSize: 1                          
+                                                to: observables.numSubaps
+                                                value: observables.currentImageSubap
+                                                stepSize: 1  
+                                                onValueChanged: {
+                                                    observables.currentImageSubap = value;
+                                                }                   
                                             }
                                         
                                         }
@@ -1796,115 +2304,118 @@ ApplicationWindow {
                                                 Layout.fillWidth: true
                                                 Layout.columnSpan: 3
                                                 from: 1
-                                                to: 5
-                                                value: 1
-                                                stepSize: 1                            
+                                                to: observables.numWavelengthsSet
+                                                value: observables.currentImageWavelength.toFixed(1)
+                                                stepSize: 1
+                                                onValueChanged: {
+                                                    observables.currentImageWavelength = value;
+                                                }                        
                                             }
 
                                         }
                                     }
                                 }
 
-                                Rectangle {
-                                    id: imageryStatsRectangle
-                                    Layout.preferredWidth: columnLayoutImagery.width * 2/5 - 5
-                                    Layout.preferredHeight: childrenRect.height + 10
-                                    Layout.alignment: Qt.AlignTop
-                                    color: sysPalette.dark
-                                    radius: 5
+                                // Rectangle {
+                                //     id: imageryStatsRectangle
+                                //     Layout.preferredWidth: columnLayoutImagery.width * 2/5 - 5
+                                //     Layout.preferredHeight: childrenRect.height + 10
+                                //     Layout.alignment: Qt.AlignTop
+                                //     color: sysPalette.dark
+                                //     radius: 5
 
-                                    GridLayout {
-                                        anchors.top: parent.top
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.margins: 5
-                                        rowSpacing: 5
-                                        columns: 2
-                                        rows: 10
+                                //     GridLayout {
+                                //         anchors.top: parent.top
+                                //         anchors.left: parent.left
+                                //         anchors.right: parent.right
+                                //         anchors.margins: 5
+                                //         rowSpacing: 5
+                                //         columns: 2
+                                //         rows: 10
 
-                                        Text {
-                                            text: qsTr("Image Stats")
-                                            font.pixelSize: 18
-                                            font.bold: true
-                                            color: sysPalette.windowText
-                                            Layout.columnSpan: 2
-                                        }
+                                //         Text {
+                                //             text: qsTr("Image Stats")
+                                //             font.pixelSize: 18
+                                //             font.bold: true
+                                //             color: sysPalette.windowText
+                                //             Layout.columnSpan: 2
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Plate Scale: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Plate Scale: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("##### arcsec/pix")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("##### arcsec/pix")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Mean: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Mean: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Median: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Median: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Std: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Std: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Min: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Min: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Max: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Max: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
                                     
-                                    }
+                                //     }
                                 
-                                }
+                                // }
 
                             }
 
@@ -1912,35 +2423,31 @@ ApplicationWindow {
 
                         Item {
                             id: atmosphereTabBarView
-                            Layout.fillWidth: false
-                            Layout.fillHeight: false
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
 
                             RowLayout {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
+                                anchors.fill: parent
                                 spacing: 5
 
                                 Rectangle {
                                     id: atmosphereBackgroundRectangle
-                                    Layout.preferredWidth: columnLayoutImagery.width * 3/5
-                                    Layout.preferredHeight: childrenRect.height + 10
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
                                     color: sysPalette.dark
                                     radius: 5
 
                                     ColumnLayout {
                                         id: slidersAtmosphereColumnLayout
-                                        anchors.top: atmosphereBackgroundRectangle.top
-                                        anchors.left: atmosphereBackgroundRectangle.left
-                                        anchors.right: atmosphereBackgroundRectangle.right
+                                        anchors.fill: parent
                                         anchors.margins: 5
                                         spacing: 2.5
 
-                                        Rectangle {
+                                        MakieArea {
                                             id: atmosphereMakieView
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: width
-                                            color: sysPalette.light
-                                            radius: 5
+                                            Layout.fillHeight: true
+                                            scene: observables.atmosphereFigureObs
                                         }
 
                                         RowLayout {
@@ -1950,6 +2457,27 @@ ApplicationWindow {
                                                 model: ["Phase", "OPD", "Mask"]
                                                 currentIndex: 0
                                                 font.pixelSize: 14
+                                            }
+
+                                            Item {
+                                                Layout.fillWidth: true
+                                            }
+
+                                            Text {
+                                                font.pixelSize: 14
+                                                horizontalAlignment: Text.AlignRight
+                                                text: qsTr("Colormap:")
+                                                color: sysPalette.windowText
+                                            }
+
+                                            ComboBox {
+                                                font.pixelSize: 14
+                                                implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
+                                                model: observables.availableColormaps
+                                                currentValue: observables.currentAtmosphereColormap
+                                                onActivated: {
+                                                    observables.currentAtmosphereColormap = currentValue;
+                                                }
                                             }
 
                                             Item {
@@ -2025,9 +2553,12 @@ ApplicationWindow {
                                                 Layout.fillWidth: true
                                                 Layout.columnSpan: 3
                                                 from: 1
-                                                to: layersModel.rowCount
-                                                value: 1
-                                                stepSize: 1                            
+                                                to: observables.numLayers
+                                                value: observables.currentAtmosphereLayer
+                                                stepSize: 1   
+                                                onValueChanged: {
+                                                    observables.currentAtmosphereLayer = value;
+                                                }                         
                                             }
 
                                         }
@@ -2087,151 +2618,154 @@ ApplicationWindow {
                                                 Layout.fillWidth: true
                                                 Layout.columnSpan: 3
                                                 from: 1
-                                                to: 5
-                                                value: 1
-                                                stepSize: 1                            
+                                                to: observables.numWavelengthsSet
+                                                value: observables.currentAtmosphereWavelength
+                                                stepSize: 1  
+                                                onValueChanged: {
+                                                    observables.currentAtmosphereWavelength = value;
+                                                }                          
                                             }
 
                                         }
                                     }
                                 }
 
-                                Rectangle {
-                                    id: atmosphereStatsRectangle
-                                    Layout.preferredWidth: columnLayoutImagery.width * 2/5 - 5
-                                    Layout.preferredHeight: childrenRect.height + 10
-                                    Layout.alignment: Qt.AlignTop
-                                    color: sysPalette.dark
-                                    radius: 5
+                                // Rectangle {
+                                //     id: atmosphereStatsRectangle
+                                //     Layout.preferredWidth: columnLayoutImagery.width * 2/5 - 5
+                                //     Layout.preferredHeight: childrenRect.height + 10
+                                //     Layout.alignment: Qt.AlignTop
+                                //     color: sysPalette.dark
+                                //     radius: 5
 
-                                    GridLayout {
-                                        anchors.top: parent.top
-                                        anchors.left: parent.left
-                                        anchors.right: parent.right
-                                        anchors.margins: 5
-                                        rowSpacing: 5
-                                        columns: 2
-                                        rows: 10
+                                //     GridLayout {
+                                //         anchors.top: parent.top
+                                //         anchors.left: parent.left
+                                //         anchors.right: parent.right
+                                //         anchors.margins: 5
+                                //         rowSpacing: 5
+                                //         columns: 2
+                                //         rows: 10
 
-                                        Text {
-                                            text: qsTr("Image Stats")
-                                            font.pixelSize: 18
-                                            font.bold: true
-                                            color: sysPalette.windowText
-                                            Layout.columnSpan: 2
-                                        }
+                                //         Text {
+                                //             text: qsTr("Image Stats")
+                                //             font.pixelSize: 18
+                                //             font.bold: true
+                                //             color: sysPalette.windowText
+                                //             Layout.columnSpan: 2
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Plate Scale: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Plate Scale: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("##### arcsec/pix")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("##### arcsec/pix")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Mean: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Mean: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Median: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Median: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Std: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Std: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Min: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Min: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("Max: ")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("Max: ")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
 
-                                        Text {
-                                            text: qsTr("#####")
-                                            font.pixelSize: 16
-                                            color: sysPalette.windowText
-                                        }
+                                //         Text {
+                                //             text: qsTr("#####")
+                                //             font.pixelSize: 16
+                                //             color: sysPalette.windowText
+                                //         }
                                     
-                                    }
+                                //     }
                                 
-                                }
+                                // }
 
                             }
                         }
 
                         Item {
                             id: pupilMasksTabBarView
-                            Layout.fillWidth: false
-                            Layout.fillHeight: false
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
 
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
+                                anchors.fill: parent
                                 spacing: 5
 
                                 Rectangle {
                                     id: masksBackgroundRectangle
-                                    Layout.preferredWidth: columnLayoutImagery.width * 3/5
-                                    Layout.preferredHeight: childrenRect.height + 10
+                                    // Layout.preferredWidth: columnLayoutImagery.width * 3/5
+                                    // Layout.preferredHeight: childrenRect.height + 10
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
                                     Layout.alignment: Qt.AlignTop
                                     color: sysPalette.dark
                                     radius: 5
 
                                     ColumnLayout {
                                         id: slidersMasksColumnLayout
-                                        anchors.top: masksBackgroundRectangle.top
-                                        anchors.left: masksBackgroundRectangle.left
-                                        anchors.right: masksBackgroundRectangle.right
+                                        anchors.fill: parent
                                         anchors.margins: 5
                                         spacing: 2.5
 
-                                        Rectangle {
+                                        MakieArea {
                                             id: masksMakieView
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: width
-                                            color: sysPalette.light
-                                            radius: 5
+                                            Layout.fillHeight: true
+                                            scene: observables.pupilFigureObs
                                         }
 
                                         ColumnLayout {
@@ -2239,7 +2773,7 @@ ApplicationWindow {
 
                                             RowLayout {
                                                 ComboBox {
-                                                    model: ["Masks", "Static Aberrations"]
+                                                    model: ["Masks", "Static Phase"]
                                                     currentIndex: 0
                                                     font.pixelSize: 14
                                                 }
@@ -2247,6 +2781,27 @@ ApplicationWindow {
                                                     model: ["Full Aperture", "Wavefront Sensor"]
                                                     currentIndex: 0
                                                     font.pixelSize: 14
+                                                }
+
+                                                Item {
+                                                    Layout.fillWidth: true
+                                                }
+
+                                                Text {
+                                                    horizontalAlignment: Text.AlignRight
+                                                    text: qsTr("Colormap:")
+                                                    color: sysPalette.windowText
+                                                    font.pixelSize: 14
+                                                }
+
+                                                ComboBox {
+                                                    font.pixelSize: 14
+                                                    implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
+                                                    model: observables.availableColormaps
+                                                    currentValue: observables.currentPupilColormap
+                                                    onActivated: {
+                                                        observables.currentPupilColormap = currentValue;
+                                                    }
                                                 }
                                             }
 
@@ -2305,9 +2860,12 @@ ApplicationWindow {
                                                     Layout.fillWidth: true
                                                     Layout.columnSpan: 3
                                                     from: 1
-                                                    to: 5
-                                                    value: 1
-                                                    stepSize: 1                            
+                                                    to: observables.numWavelengthsSet
+                                                    value: observables.currentPupilWavelength
+                                                    stepSize: 1  
+                                                    onValueChanged: {
+                                                        observables.currentPupilWavelength = value;
+                                                    }
                                                 }
 
                                             }
@@ -2324,36 +2882,36 @@ ApplicationWindow {
 
                         Item {
                             id: responseTabBarView
-                            Layout.fillWidth: false
-                            Layout.fillHeight: false
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
 
                             RowLayout {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
+                                anchors.fill: parent
                                 spacing: 5
 
                                 Rectangle {
                                     id: responseBackgroundRectangle
-                                    Layout.preferredWidth: columnLayoutImagery.width
-                                    Layout.preferredHeight: childrenRect.height + 10
+                                    // Layout.preferredWidth: columnLayoutImagery.width
+                                    // Layout.preferredHeight: childrenRect.height + 10
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
                                     Layout.alignment: Qt.AlignTop
                                     color: sysPalette.dark
                                     radius: 5
 
                                     ColumnLayout {
                                         id: slidersResponseColumnLayout
-                                        anchors.top: responseBackgroundRectangle.top
-                                        anchors.left: responseBackgroundRectangle.left
-                                        anchors.right: responseBackgroundRectangle.right
+                                        anchors.fill: parent
                                         anchors.margins: 5
                                         spacing: 2.5
 
-                                        Rectangle {
+                                        MakieArea {
                                             id: responseMakieView
                                             Layout.fillWidth: true
-                                            Layout.preferredHeight: rightBackgroundRectangle.height * 1/2
-                                            color: sysPalette.light
-                                            radius: 5
+                                            Layout.fillHeight: true
+                                            scene: observables.responseFigureObs
                                         }
 
                                     }
@@ -2373,7 +2931,7 @@ ApplicationWindow {
             Rectangle{
                 id: saveOutputsRectangle
                 Layout.fillWidth: true
-                Layout.preferredHeight: columnLayoutLeft.height - rightBackgroundRectangle.height - 5
+                Layout.preferredHeight: columnLayoutOutputs.height + 10
                 Layout.alignment: Qt.AlignTop
                 color: sysPalette.mid
                 radius: 5
@@ -2381,7 +2939,8 @@ ApplicationWindow {
                 border.color: sysPalette.dark
 
                 ColumnLayout {
-                    anchors.top: parent.top
+                    id: columnLayoutOutputs
+                    // anchors.centerIn: parent
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.margins: 5
@@ -2407,6 +2966,7 @@ ApplicationWindow {
 
                         TextField {
                             Layout.fillWidth: true
+                            text: observables.saveDirectory
                         }
 
                         Button {
@@ -2424,7 +2984,7 @@ ApplicationWindow {
                     TextField {
                         Layout.preferredWidth: 200
                         text: observables.runId
-                        onAccepted: {
+                        onEditingFinished: {
                             observables.runId = text.toString()
                         }
                     }
@@ -2434,7 +2994,7 @@ ApplicationWindow {
                         font.pixelSize: 18
                         font.bold: true
                         Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredHeight: 35
+                        Layout.preferredHeight: 50
                         Layout.preferredWidth: 150
                     }
 

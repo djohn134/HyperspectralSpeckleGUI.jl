@@ -2,7 +2,7 @@
 
 julia_version = "1.13.1"
 manifest_format = "2.1"
-project_hash = "0355cabbacdfe4a7fa16655df9c6ba628cd8327b"
+project_hash = "1ad30e886ae4e5da656fcb68e3e1867639deeed5"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -741,7 +741,7 @@ uuid = "9c334713-95b8-43d6-b4fd-129a6b267c09"
 version = "0.0.0"
 
 [[deps.HyperspectralSpeckleGUI]]
-deps = ["Colors", "Dates", "GLMakie", "HyperspectralSpeckle", "QML", "QMLMakie", "jlqml_jll"]
+deps = ["ColorSchemes", "Colors", "Dates", "GLMakie", "HyperspectralSpeckle", "QML", "QMLMakie", "Statistics", "jlqml_jll"]
 path = "."
 uuid = "2e78e141-9038-4755-b5a3-5c0717253eb4"
 version = "0.0.0"
