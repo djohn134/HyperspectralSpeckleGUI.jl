@@ -59,16 +59,17 @@ module HyperspectralSpeckleGUI
         backgroundBrightness = Observable{Float64}(21.0)
         targetRange = Observable{Float64}(500.0e3)
         truthTarget = Observable{Array{Float64, 3}}(zeros(Float64, 1, 1, 1))
-        truthTargetWavelengths = Observable{AbstractVector{Float64}}([1.0])
+        truthTargetWavelengths = Observable{AbstractVector{Float64}}([NaN])
         includeNoise = Observable{Bool}(true)
         propagateLayers = Observable{Bool}(true)
         simulateAnisoplanatic = Observable{Bool}(true)
         patchSize = Observable{Int64}(64)
         numTimesteps = Observable{Int64}(10)
+        timestepsSet = @lift(collect(0:$numTimesteps-1) .* $exposureTime)
         lowerWavelength = Observable{Float64}(400.0e-9)
         upperWavelength = Observable{Float64}(1000.0e-9)
         nyquistWavelength = Observable{Float64}(400.0e-9)
-        wavelength = Observable{Vector{Float64}}([])
+        wavelengthSet = Observable{Vector{Float64}}([NaN])
         numWavelengths = Observable{Int64}(5)
         numWavelengthsSet = Observable{Int64}(1)
         numWavelengthsTarget = Observable{Int64}(1)
@@ -78,19 +79,39 @@ module HyperspectralSpeckleGUI
         imageSizeWfs = Observable{Int64}(64)
         saveDirectory = Observable{String}(pwd())
         runId = Observable{String}(Dates.format(now(), "yyyymmdd-HHMMSS"))
-        
+        simulationFinished = false
+
         enableFullAp = Observable{Bool}(true)
         enableWfs = Observable{Bool}(true)
         enableDiversity = Observable{Bool}(false)
 
-        # GUI Slider Parameters
-        currentTargetWavelength = Observable{Int64}(1)
-        currentImageTimestep = Observable{Int64}(1)
-        currentImageSubap = Observable{Int64}(1)
-        currentImageWavelength = Observable{Int64}(1)
-        currentAtmosphereLayer = Observable{Int64}(1)
-        currentAtmosphereWavelength = Observable{Int64}(1)
-        currentPupilWavelength = Observable{Int64}(1)
+        imagesFullAp = Array{Union{Missing, <:Real}, 3}(undef, 1, 1, 1)
+        imagesWfs = Array{Union{Missing, <:Real}, 3}(undef, 1, 1, 1)
+        images = Array{Union{Missing, <:Real}, 3}(undef, 1, 1, 1)
+        pupilPositions = Observable{Array{Float64, 4}}(zeros(2, 1, 1, 1))
+        atmosphere = []
+
+        # GUI Status Parameters
+        currentTargetWavelengthIx = Observable{Int64}(1)
+        currentTargetWavelength = @lift($truthTargetWavelengths[$currentTargetWavelengthIx])
+        currentImageTimestepIx = Observable{Int64}(1)
+        currentImageTimestep = @lift($timestepsSet[$currentImageTimestepIx])
+        currentImageSubapIx = Observable{Int64}(1)
+        currentImageWavelengthIx = Observable{Int64}(1)
+        currentImageWavelength = @lift($wavelengthSet[$currentImageWavelengthIx])
+        currentAtmosphereLayerIx = Observable{Int64}(1)
+        currentAtmosphereLayer = @lift($layerHeights[$currentAtmosphereLayerIx])
+        currentAtmosphereWavelengthIx = Observable{Int64}(1)
+        currentAtmosphereWavelength = @lift($wavelengthSet[$currentAtmosphereWavelengthIx])
+        currentPupilWavelengthIx = Observable{Int64}(1)
+        currentPupilWavelength = @lift($wavelengthSet[$currentPupilWavelengthIx])
+        currentPupilCenter = Observable{Point2f}(Point2f(0.0, 0.0))
+        currentPupilSize = Observable{Float64}(1.0)
+        framesPlaying = Observable{Bool}(false)
+        loopFrames = Observable{Bool}(true)
+        playbackFps = Observable{Float64}(10.0)
+        playbackSpf = @lift(1/$playbackFps)
+        imagesChannelView = Observable{String}("Full Aperture")
 
         ## QMLMakie figures
         cmocean_schemes = filter(p -> p.second.category == "cmocean", colorschemes)
@@ -107,7 +128,7 @@ module HyperspectralSpeckleGUI
         targetFigureObs = Observable(targetFigure)
 
         currentImagesColormap = Observable{String}("grays")
-        currentImage = Observable{Matrix{Float64}}(zeros(Float64, 1, 1))
+        currentImage = Observable{Matrix{Any}}(zeros(Float64, 1, 1))
         imagesFigure = Figure(figure_padding=10)
         imagesAx = Axis(imagesFigure[1, 1], aspect = AxisAspect(1.0))
         imagesImage = heatmap!(imagesAx, currentImage, colormap = Symbol(currentImagesColormap[]))
@@ -115,17 +136,20 @@ module HyperspectralSpeckleGUI
         hidedecorations!(imagesAx)
         imagesFigureObs = Observable(imagesFigure)
 
-        currentAtmosphereColormap = Observable{String}("haline")
-        currentAtmosphereImage = Observable{Matrix{Float64}}(zeros(Float64, 1, 1))
+        currentAtmosphereColormap = Observable{String}("tarn")
+        currentAtmosphereImage = Observable{Matrix{Any}}(zeros(Float64, 1, 1))
         atmosphereFigure = Figure(figure_padding=10)
         atmosphereAx = Axis(atmosphereFigure[1, 1], aspect = AxisAspect(1.0))
         atmosphereImage = heatmap!(atmosphereAx, currentAtmosphereImage, colormap = Symbol(currentAtmosphereColormap[]))
         atmosphereColorbar = Colorbar(atmosphereFigure[1, 2], atmosphereImage)
         hidedecorations!(atmosphereAx)
+        currentPupilCenter = @lift(Point2f($pupilPositions[2, $currentImageTimestepIx, $currentAtmosphereLayerIx, $currentAtmosphereWavelengthIx]+1, -$pupilPositions[1, $currentImageTimestepIx, $currentAtmosphereLayerIx, $currentAtmosphereWavelengthIx]-1))
+        pupilCircleObs = @lift(Circle($currentPupilCenter, $currentPupilSize))
+        pupilCircle = poly!(atmosphereAx, pupilCircleObs, color = :transparent, strokecolor = :red, strokewidth = 2)
         atmosphereFigureObs = Observable(atmosphereFigure)
 
         currentPupilColormap = Observable{String}("grays")
-        currentPupilImage = Observable{Matrix{Float64}}(zeros(Float64, 1, 1))
+        currentPupilImage = Observable{Matrix{Any}}(zeros(Float64, 1, 1))
         pupilFigure = Figure(figure_padding=10)
         pupilAx = Axis(pupilFigure[1, 1], aspect = AxisAspect(1.0))
         pupilImage = heatmap!(pupilAx, currentPupilImage, colormap = Symbol(currentPupilColormap[]))
@@ -214,13 +238,23 @@ module HyperspectralSpeckleGUI
             
             "numWavelengthsTarget" => numWavelengthsTarget,
             "truthTargetWavelengths" => truthTargetWavelengths,
+            "currentTargetWavelengthIx" => currentTargetWavelengthIx,
             "currentTargetWavelength" => currentTargetWavelength,
+            "currentImageTimestepIx" => currentImageTimestepIx,
             "currentImageTimestep" => currentImageTimestep,
-            "currentImageSubap" => currentImageSubap,
+            "currentImageSubapIx" => currentImageSubapIx,
+            "currentImageWavelengthIx" => currentImageWavelengthIx,
             "currentImageWavelength" => currentImageWavelength,
+            "currentAtmosphereLayerIx" => currentAtmosphereLayerIx,
             "currentAtmosphereLayer" => currentAtmosphereLayer,
+            "currentAtmosphereWavelengthIx" => currentAtmosphereWavelengthIx,
             "currentAtmosphereWavelength" => currentAtmosphereWavelength,
-            "currentPupilWavelength" => currentPupilWavelength
+            "currentPupilWavelengthIx" => currentPupilWavelengthIx,
+            "currentPupilWavelength" => currentPupilWavelength,
+            "framesPlaying" => framesPlaying,
+            "loopFrames" => loopFrames,
+            "playbackFps" => playbackFps,
+            "imagesChannelView" => imagesChannelView,
         )
 
         on(windowColor) do color
@@ -357,12 +391,60 @@ module HyperspectralSpeckleGUI
             end
         end
 
+        on(currentImageTimestepIx) do ix
+            if simulationFinished && currentImageSubapIx[] <= numTimesteps[]
+                currentImage[] = images[:, :, ix]
+                notify(imagesFigureObs)
+                notify(atmosphereFigureObs)
+            end
+        end
+
+        # on(currentImage) do ~
+        #     notify(imagesFigureObs)
+        # end
+
+        on(framesPlaying) do ~
+            Threads.@spawn while framesPlaying[]
+                startTime = time()
+                if loopFrames[]
+                    currentImageTimestepIx[] = mod(currentImageTimestepIx[], numTimesteps[]) + 1
+                else
+                    if currentImageTimestepIx[] < numTimesteps[]
+                        currentImageTimestepIx[] += 1
+                    else
+                        framesPlaying[] = false
+                        break
+                    end
+                end
+                endTime = time()
+                dT = endTime - startTime
+                Libc.systemsleep((playbackSpf[] - dT > 0) ? playbackSpf[] - dT : 0.0)
+            end
+        end
+
+        on(imagesChannelView) do channel
+            if channel == "Full Aperture"
+                images = imagesFullAp
+            elseif channel == "Wavefront Sensor"
+                images = imagesWfs
+            end
+            currentImage[] = images[:, :, currentImageTimestepIx[]]
+            autolimits!(imagesAx)
+            notify(imagesFigureObs)
+        end
+
+        on(currentAtmosphereLayerIx) do ix
+            currentAtmosphereImage[] = atmosphere.phase[:, :, ix, currentAtmosphereWavelengthIx[]]
+            autolimits!(atmosphereAx)
+            notify(atmosphereFigureObs)
+        end
+
         function runHyperspectralSpeckle()
             FTYPE = Core.eval(Main, Meta.parse(defaultDatatype[])) 
             DTYPE = Core.eval(Main, Meta.parse(imageDatatype[]))
 
-            wavelength = collect(range(lowerWavelength[], stop=upperWavelength[], length=numWavelengths[]));
-            times = collect(0:numTimesteps[]-1) .* exposureTime[]
+            wavelengthSet[] = collect(range(lowerWavelength[], stop=upperWavelength[], length=numWavelengths[]));
+            timestepsSet[] = collect(0:numTimesteps[]-1) .* exposureTime[]
             observations = []
             ######### Create Full-Ap Detector #########
             diversity = nothing
@@ -377,10 +459,10 @@ module HyperspectralSpeckleGUI
             end
 
             if enableFullAp[]
-                wavelengthFullAp[] = isempty(wavelengthFullAp[]) ? wavelength : wavelengthFullAp[]
+                wavelengthFullAp[] = isempty(wavelengthFullAp[]) ? wavelengthSet[] : wavelengthFullAp[]
                 response = responseFullAp[] .* ones(numWavelengths[])
                 filterFullAp = OpticalElement(λ=wavelengthFullAp[], response=response, FTYPE=FTYPE)
-                opticsFullAp = OpticalSystem([filterFullAp], wavelength, FTYPE=FTYPE)
+                opticsFullAp = OpticalSystem([filterFullAp], wavelengthSet[], FTYPE=FTYPE)
                 pixscaleFullAp = fieldOfView[] / imageSizeFullAp[]  # arcsec/pix
                 detectorFullAp = Detector(
                     qe=ones(numWavelengths[]) .* quantumEfficiency[],
@@ -388,7 +470,7 @@ module HyperspectralSpeckleGUI
                     pixscale=pixscaleFullAp,
                     gain=gain[],
                     saturation=wellDepth[],
-                    λ=wavelength,
+                    λ=wavelengthSet[],
                     λ_nyquist=nyquistWavelength[],
                     exptime=exposureTime[],
                     FTYPE=FTYPE,
@@ -403,7 +485,7 @@ module HyperspectralSpeckleGUI
                     ζ=zenithAngle[],
                     D=apertureDiameter[],
                     D_inner_frac=obscurationFraction[],
-                    times=times,
+                    times=timestepsSet[],
                     nsubexp=1,
                     nsubaps_side=1,
                     dim=imageSizeFullAp[],
@@ -415,10 +497,10 @@ module HyperspectralSpeckleGUI
             end
 
             if enableWfs[]
-                wavelengthWfs[] = isempty(wavelengthWfs[]) ? wavelength : wavelengthWfs[]
+                wavelengthWfs[] = isempty(wavelengthWfs[]) ? wavelengthSet[] : wavelengthWfs[]
                 response = responseWfs[] .* ones(numWavelengths[])
                 filterWfs = OpticalElement(λ=wavelengthWfs[], response=response, FTYPE=FTYPE)
-                opticsWfs = OpticalSystem([filterWfs], wavelength, FTYPE=FTYPE)
+                opticsWfs = OpticalSystem([filterWfs], wavelengthSet[], FTYPE=FTYPE)
                 pixscaleWfs = pixscaleFullAp .* microlensArrayLength[]  # arcsec/pix
                 detectorWfs = Detector(
                     qe=ones(numWavelengths[]) .* quantumEfficiency[],
@@ -426,7 +508,7 @@ module HyperspectralSpeckleGUI
                     pixscale=pixscaleWfs,
                     gain=gain[],
                     saturation=wellDepth[],
-                    λ=wavelength,
+                    λ=wavelengthSet[],
                     λ_nyquist=nyquistWavelength[],
                     exptime=exposureTime[],
                     FTYPE=FTYPE,
@@ -440,7 +522,7 @@ module HyperspectralSpeckleGUI
                     ζ=zenithAngle[],
                     D=apertureDiameter[],
                     area=apertureArea,
-                    times=times,
+                    times=timestepsSet[],
                     nsubexp=1,
                     nsubaps_side=microlensArrayLength[],
                     dim=imageSizeWfs[],
@@ -453,7 +535,7 @@ module HyperspectralSpeckleGUI
                 push!(observations, observationsWfs)
             end
 
-            ~, spectrum = solar_spectrum(λ=wavelength)
+            ~, spectrum = solar_spectrum(λ=wavelengthSet[])
             irradiance = mag2flux(targetBrightness[], filterFullAp, ζ=zenithAngle[])  # ph / s / m^2
             background = mag2flux(backgroundBrightness[], filterFullAp, ζ=zenithAngle[])  # ph / s / m^2 / arcsec^2
             background *= fieldOfView[]^2  # ph / s / m^2
@@ -462,7 +544,7 @@ module HyperspectralSpeckleGUI
                 truthTarget[],
                 irradiance=irradiance,
                 background=background,
-                λ=wavelength,
+                λ=wavelengthSet[],
                 fov=fieldOfView[],
                 object_range=targetRange[], 
                 dim=imageSizeFullAp[],
@@ -475,10 +557,10 @@ module HyperspectralSpeckleGUI
             numLayers[] = length(layerHeights[])
             sampling_nyquist_mperpix = layer_nyquist_sampling_mperpix(apertureDiameter[], imageSizeFullAp[], numLayers[])
             sampling_nyquist_arcsecperpix = layer_nyquist_sampling_arcsecperpix(apertureDiameter[], fieldOfView[], layerHeights[], imageSizeFullAp[])
-            transmission = (numWavelengths[] == 1) ? atmosphericTransmission[] : interpolate1d(wavelengthTransmission[], atmosphericTransmission[], wavelength)
+            transmission = (numWavelengths[] == 1) ? atmosphericTransmission[] : interpolate1d(wavelengthTransmission[], atmosphericTransmission[], wavelengthSet[])
             wind = [windSpeed[] windDirection[]]
             atmosphere = Atmosphere(
-                wavelength,
+                wavelengthSet[],
                 observations, 
                 object,
                 patches,
@@ -497,21 +579,41 @@ module HyperspectralSpeckleGUI
 
             if enableFullAp[]
                 create_detector_images(patches, observationsFullAp, atmosphere, object, build_dim=imageSizeFullAp[], noise=includeNoise[])
+                imagesFullAp = observationsFullAp.images[:, :, 1, :]
             end
 
             if enableWfs[]
                 create_detector_images(patches, observationsWfs, atmosphere, object, build_dim=imageSizeFullAp[], noise=includeNoise[])
+                imagesWfs = Array{Union{Missing, eltype(observationsWfs.images)}}(undef, size(observationsWfs.images, 1)*microlensArrayLength[], size(observationsWfs.images, 2)*microlensArrayLength[], size(observationsWfs.images, 4))
+                fill!(imagesWfs, missing)
+                for ixTime=1:size(observationsWfs.images, 4)
+                    imagesWfs[:, :, ixTime] .= stack2mosaic(observationsWfs.images[:, :, :, ixTime], microlensArrayLength[], observationsWfs.masks.ix)
+                end
             end
 
             if enableFullAp[]
-                currentImage[] = observationsFullAp.images[:, :, 1, 1]
+                images = imagesFullAp
             elseif enableWfs[]
-                currentImage[] = observationsWfs.images[:, :, 1, 1]
+                images = imagesWfs
             end
-            
+
+            currentImageTimestepIx[] = 1
+            currentImage[] = images[:, :, currentImageTimestepIx[]]
             Makie.rotate!(imagesImage, imageRotation[])
             autolimits!(imagesAx)
             notify(imagesFigureObs)
+
+            currentAtmosphereLayerIx[] = 1
+            currentAtmosphereWavelengthIx[] = 1
+            currentAtmosphereImage[] = atmosphere.phase[:, :, currentAtmosphereLayerIx[], currentAtmosphereWavelengthIx[]]
+            Makie.rotate!(atmosphereImage, -pi/2)
+            autolimits!(atmosphereAx)
+            notify(atmosphereFigureObs)
+
+            pupilPositions[] = observationsFullAp.positions
+            currentPupilSize[] = (observationsFullAp.D/2 / atmosphere.sampling_nyquist_mperpix[currentAtmosphereLayerIx[]]) * (nyquistWavelength[] / currentAtmosphereWavelength[])
+
+            simulationFinished = true
         end
 
         ## Julia functions sent to QML

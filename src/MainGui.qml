@@ -1554,7 +1554,7 @@ ApplicationWindow {
                                 }
 
                                 Text {
-                                    text: observables.truthTargetWavelengths[targetWavelengthSlider.value-1].toFixed(1) + qsTr("nm")
+                                    text: observables.truthTargetWavelengths[targetWavelengthSlider.value-1].toFixed(1) + qsTr(" nm")
                                     Layout.fillWidth: true
                                     horizontalAlignment: Text.AlignHCenter
                                     color: sysPalette.windowText
@@ -1567,10 +1567,10 @@ ApplicationWindow {
                                     Layout.columnSpan: 3
                                     from: 1
                                     to: observables.numWavelengthsTarget
-                                    value: observables.currentTargetWavelength
+                                    value: observables.currentTargetWavelengthIx
                                     stepSize: 1  
                                     onValueChanged: {
-                                        observables.currentTargetWavelength = value;
+                                        observables.currentTargetWavelengthIx = value;
                                     }
                                 }
 
@@ -2076,8 +2076,11 @@ ApplicationWindow {
 
                                             ComboBox {
                                                 model: ["Full Aperture", "Wavefront Sensor"]
-                                                currentIndex: 0
                                                 font.pixelSize: 14
+                                                currentValue: observables.imagesChannelView
+                                                onActivated: {
+                                                    observables.imagesChannelView = qsTr(currentValue)
+                                                }
                                             }
 
                                             Item {
@@ -2120,12 +2123,14 @@ ApplicationWindow {
                                         }
 
                                         GridLayout {                                        
-                                            rows: 3
+                                            rows: 4
                                             columns: 3
                                             Layout.fillWidth: true
                                         
                                             Button {
-                                                Layout.rowSpan: 2
+                                                Layout.row: 0
+                                                Layout.column: 0
+                                                Layout.rowSpan: 3
                                                 Layout.fillWidth: false
                                                 Layout.fillHeight: true
                                                 Layout.preferredWidth: implicitWidth / 2
@@ -2139,6 +2144,8 @@ ApplicationWindow {
                                             }
                                             
                                             Text {
+                                                Layout.row: 0
+                                                Layout.column: 1
                                                 text: qsTr("Timestep")
                                                 color: sysPalette.windowText
                                                 Layout.fillWidth: true
@@ -2148,7 +2155,9 @@ ApplicationWindow {
                                             }
 
                                             Button {
-                                                Layout.rowSpan: 2
+                                                Layout.row: 0
+                                                Layout.column: 2
+                                                Layout.rowSpan: 3
                                                 Layout.fillWidth: false
                                                 Layout.fillHeight: true
                                                 Layout.preferredWidth: implicitWidth / 2
@@ -2162,260 +2171,82 @@ ApplicationWindow {
                                             }
 
                                             Text {
-                                                text: timestepSlider.value + qsTr("/") + timestepSlider.to
+                                                Layout.row: 1
+                                                Layout.column: 1
+                                                text: observables.currentImageTimestep + qsTr(" s (") + timestepSlider.value + qsTr("/") + timestepSlider.to + qsTr(")")
                                                 Layout.fillWidth: true
                                                 horizontalAlignment: Text.AlignHCenter
                                                 color: sysPalette.windowText
                                                 font.pixelSize: 12
                                             }
 
+                                            RowLayout {
+                                                Layout.row: 2
+                                                Layout.column: 1
+                                                Layout.fillWidth: true
+                                                Layout.fillHeight: false
+                                                Layout.alignment: Qt.AlignHCenter
+                                                spacing: 2.5
+
+                                                Button {    
+                                                    checkable: true
+                                                    checked: observables.framesPlaying
+                                                    Layout.preferredWidth: implicitWidth / 2
+                                                    icon.source: checked ? "assets/pause.png" : "assets/play.png"
+                                                    icon.color: checked ? "#B22222" : "#008000"
+
+                                                    onClicked: {
+                                                        observables.framesPlaying = checked;
+                                                    }
+                                                }
+
+                                                Button {                                                
+                                                    Layout.preferredWidth: implicitWidth / 2
+                                                    icon.source: "assets/repeat.png"
+                                                    icon.color: sysPalette.windowText
+                                                    checkable: true
+                                                    checked: observables.loopFrames
+
+                                                    onCheckedChanged: {
+                                                        observables.loopFrames = checked;
+                                                    }
+                                                }
+
+                                                TextField {
+                                                    Layout.preferredWidth: 40
+                                                    text: observables.playbackFps
+                                                    onEditingFinished: {
+                                                        observables.playbackFps = parseFloat(text)
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: qsTr("fps")
+                                                    font.pixelSize: 12
+                                                    color: sysPalette.windowText
+                                                }
+                                            }
+
+
                                             Slider {
+                                                Layout.column: 0
+                                                Layout.row: 3
                                                 id: timestepSlider
                                                 Layout.fillWidth: true
                                                 Layout.columnSpan: 3
                                                 from: 1
                                                 to: observables.numTimesteps
-                                                value: observables.currentImageTimestep
+                                                value: observables.currentImageTimestepIx
                                                 stepSize: 1   
                                                 onValueChanged: {
-                                                    observables.currentImageTimestep = value;
+                                                    observables.currentImageTimestepIx = value;
                                                 }                         
                                             }
 
                                         }
 
-                                        GridLayout {                                        
-                                            rows: 3
-                                            columns: 3
-                                            Layout.fillWidth: true
-                                        
-                                            Button {
-                                                Layout.rowSpan: 2
-                                                Layout.fillWidth: false
-                                                Layout.fillHeight: true
-                                                Layout.preferredWidth: implicitWidth / 2
-                                                flat: true
-                                                icon.source: "assets/left-icon.svg"
-                                                icon.color: sysPalette.light
-
-                                                onClicked: {
-                                                    subapSlider.value -= 1
-                                                }
-                                            }
-
-                                            Text {
-                                                text: qsTr("Sub-Aperture Index")
-                                                color: sysPalette.windowText
-                                                Layout.fillWidth: true
-                                                horizontalAlignment: Text.AlignHCenter
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                            }
-
-                                            Button {
-                                                Layout.rowSpan: 2
-                                                Layout.fillWidth: false
-                                                Layout.fillHeight: true
-                                                Layout.preferredWidth: implicitWidth / 2
-                                                flat: true
-                                                icon.source: "assets/right-icon.svg"
-                                                icon.color: sysPalette.light
-
-                                                onClicked: {
-                                                    subapSlider.value += 1
-                                                }
-                                            }
-
-                                            Text {
-                                                text: subapSlider.value + qsTr("/") + subapSlider.to
-                                                Layout.fillWidth: true
-                                                horizontalAlignment: Text.AlignHCenter
-                                                color: sysPalette.windowText
-                                                font.pixelSize: 12
-                                            }
-
-                                            Slider {
-                                                id: subapSlider
-                                                Layout.fillWidth: true
-                                                Layout.columnSpan: 3
-                                                from: 1
-                                                to: observables.numSubaps
-                                                value: observables.currentImageSubap
-                                                stepSize: 1  
-                                                onValueChanged: {
-                                                    observables.currentImageSubap = value;
-                                                }                   
-                                            }
-                                        
-                                        }
-
-                                        GridLayout {                                        
-                                            rows: 3
-                                            columns: 3
-                                            Layout.fillWidth: true
-                                        
-                                            Button {
-                                                Layout.rowSpan: 2
-                                                Layout.fillWidth: false
-                                                Layout.fillHeight: true
-                                                Layout.preferredWidth: implicitWidth / 2
-                                                flat: true
-                                                icon.source: "assets/left-icon.svg"
-                                                icon.color: sysPalette.light
-
-                                                onClicked: {
-                                                    wavelengthSlider.value -= 1
-                                                }
-                                            }
-
-                                            Text {
-                                                text: qsTr("Wavelength")
-                                                Layout.fillWidth: true
-                                                horizontalAlignment: Text.AlignHCenter
-                                                color: sysPalette.windowText
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                            }
-
-                                            Button {
-                                                Layout.rowSpan: 2
-                                                Layout.fillWidth: false
-                                                Layout.fillHeight: true
-                                                Layout.preferredWidth: implicitWidth / 2
-                                                flat: true
-                                                icon.source: "assets/right-icon.svg"
-                                                icon.color: sysPalette.light
-
-                                                onClicked: {
-                                                    wavelengthSlider.value += 1
-                                                }
-                                            }
-
-                                            Text {
-                                                text: wavelengthSlider.value + qsTr("nm")
-                                                Layout.fillWidth: true
-                                                horizontalAlignment: Text.AlignHCenter
-                                                color: sysPalette.windowText
-                                                font.pixelSize: 12
-                                            }
-
-                                            Slider {
-                                                id: wavelengthSlider
-                                                Layout.fillWidth: true
-                                                Layout.columnSpan: 3
-                                                from: 1
-                                                to: observables.numWavelengthsSet
-                                                value: observables.currentImageWavelength.toFixed(1)
-                                                stepSize: 1
-                                                onValueChanged: {
-                                                    observables.currentImageWavelength = value;
-                                                }                        
-                                            }
-
-                                        }
                                     }
                                 }
-
-                                // Rectangle {
-                                //     id: imageryStatsRectangle
-                                //     Layout.preferredWidth: columnLayoutImagery.width * 2/5 - 5
-                                //     Layout.preferredHeight: childrenRect.height + 10
-                                //     Layout.alignment: Qt.AlignTop
-                                //     color: sysPalette.dark
-                                //     radius: 5
-
-                                //     GridLayout {
-                                //         anchors.top: parent.top
-                                //         anchors.left: parent.left
-                                //         anchors.right: parent.right
-                                //         anchors.margins: 5
-                                //         rowSpacing: 5
-                                //         columns: 2
-                                //         rows: 10
-
-                                //         Text {
-                                //             text: qsTr("Image Stats")
-                                //             font.pixelSize: 18
-                                //             font.bold: true
-                                //             color: sysPalette.windowText
-                                //             Layout.columnSpan: 2
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("Plate Scale: ")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("##### arcsec/pix")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("Mean: ")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("#####")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("Median: ")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("#####")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("Std: ")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("#####")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("Min: ")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("#####")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("Max: ")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-
-                                //         Text {
-                                //             text: qsTr("#####")
-                                //             font.pixelSize: 16
-                                //             color: sysPalette.windowText
-                                //         }
-                                    
-                                //     }
-                                
-                                // }
 
                             }
 
@@ -2454,7 +2285,7 @@ ApplicationWindow {
                                             spacing: 5
 
                                             ComboBox {
-                                                model: ["Phase", "OPD", "Mask"]
+                                                model: ["Phase", "Mask"]
                                                 currentIndex: 0
                                                 font.pixelSize: 14
                                             }
@@ -2499,6 +2330,130 @@ ApplicationWindow {
                                         }
 
                                         GridLayout {                                        
+                                            rows: 4
+                                            columns: 3
+                                            Layout.fillWidth: true
+                                        
+                                            Button {
+                                                Layout.row: 0
+                                                Layout.column: 0
+                                                Layout.rowSpan: 3
+                                                Layout.fillWidth: false
+                                                Layout.fillHeight: true
+                                                Layout.preferredWidth: implicitWidth / 2
+                                                flat: true
+                                                icon.source: "assets/left-icon.svg"
+                                                icon.color: sysPalette.light
+
+                                                onClicked: {
+                                                    timestepSliderAtmosphere.value -= 1
+                                                }
+                                            }
+                                            
+                                            Text {
+                                                Layout.row: 0
+                                                Layout.column: 1
+                                                text: qsTr("Timestep")
+                                                color: sysPalette.windowText
+                                                Layout.fillWidth: true
+                                                horizontalAlignment: Text.AlignHCenter
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                            }
+
+                                            Button {
+                                                Layout.row: 0
+                                                Layout.column: 2
+                                                Layout.rowSpan: 3
+                                                Layout.fillWidth: false
+                                                Layout.fillHeight: true
+                                                Layout.preferredWidth: implicitWidth / 2
+                                                flat: true
+                                                icon.source: "assets/right-icon.svg"
+                                                icon.color: sysPalette.light
+
+                                                onClicked: {
+                                                    timestepSliderAtmosphere.value += 1
+                                                }
+                                            }
+
+                                            Text {
+                                                Layout.row: 1
+                                                Layout.column: 1
+                                                text: observables.currentImageTimestep + qsTr(" s (") + timestepSliderAtmosphere.value + qsTr("/") + timestepSliderAtmosphere.to + qsTr(")")
+                                                Layout.fillWidth: true
+                                                horizontalAlignment: Text.AlignHCenter
+                                                color: sysPalette.windowText
+                                                font.pixelSize: 12
+                                            }
+
+                                            RowLayout {
+                                                Layout.row: 2
+                                                Layout.column: 1
+                                                Layout.fillWidth: true
+                                                Layout.fillHeight: false
+                                                Layout.alignment: Qt.AlignHCenter
+                                                spacing: 2.5
+
+                                                Button {    
+                                                    checkable: true
+                                                    checked: observables.framesPlaying
+                                                    Layout.preferredWidth: implicitWidth / 2
+                                                    icon.source: checked ? "assets/pause.png" : "assets/play.png"
+                                                    icon.color: checked ? "#B22222" : "#008000"
+
+                                                    onClicked: {
+                                                        observables.framesPlaying = checked;
+                                                    }
+                                                }
+
+                                                Button {                                                
+                                                    Layout.preferredWidth: implicitWidth / 2
+                                                    icon.source: "assets/repeat.png"
+                                                    icon.color: sysPalette.windowText
+                                                    checkable: true
+                                                    checked: observables.loopFrames
+
+                                                    onCheckedChanged: {
+                                                        observables.loopFrames = checked;
+                                                    }
+                                                }
+
+                                                TextField {
+                                                    Layout.preferredWidth: 40
+                                                    text: observables.playbackFps
+                                                    onEditingFinished: {
+                                                        observables.playbackFps = parseFloat(text)
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: qsTr("fps")
+                                                    font.pixelSize: 12
+                                                    color: sysPalette.windowText
+                                                }
+                                            }
+
+
+                                            Slider {
+                                                Layout.column: 0
+                                                Layout.row: 3
+                                                id: timestepSliderAtmosphere
+                                                Layout.fillWidth: true
+                                                Layout.columnSpan: 3
+                                                from: 1
+                                                to: observables.numTimesteps
+                                                value: observables.currentImageTimestepIx
+                                                stepSize: 1   
+                                                onValueChanged: {
+                                                    observables.currentImageTimestepIx = value;
+                                                }                         
+                                            }
+
+                                        }
+
+
+                                        GridLayout {                                        
                                             rows: 3
                                             columns: 3
                                             Layout.fillWidth: true
@@ -2513,7 +2468,7 @@ ApplicationWindow {
                                                 icon.color: sysPalette.light
 
                                                 onClicked: {
-                                                    timestepSlider.value -= 1
+                                                    layerSlider.value -= 1
                                                 }
                                             }
                                             
@@ -2536,12 +2491,12 @@ ApplicationWindow {
                                                 icon.color: sysPalette.light
 
                                                 onClicked: {
-                                                    timestepSlider.value += 1
+                                                    layerSlider.value += 1
                                                 }
                                             }
 
                                             Text {
-                                                text: layerSlider.value + qsTr("/") + layerSlider.to
+                                                text: (observables.layerHeights[observables.currentAtmosphereLayerIx-1] * 1e-3).toFixed(1) + qsTr(" km")
                                                 Layout.fillWidth: true
                                                 horizontalAlignment: Text.AlignHCenter
                                                 color: sysPalette.windowText
@@ -2554,11 +2509,11 @@ ApplicationWindow {
                                                 Layout.columnSpan: 3
                                                 from: 1
                                                 to: observables.numLayers
-                                                value: observables.currentAtmosphereLayer
+                                                value: observables.currentAtmosphereLayerIx
                                                 stepSize: 1   
                                                 onValueChanged: {
-                                                    observables.currentAtmosphereLayer = value;
-                                                }                         
+                                                    observables.currentAtmosphereLayerIx = value;
+                                                }
                                             }
 
                                         }
@@ -2606,7 +2561,7 @@ ApplicationWindow {
                                             }
 
                                             Text {
-                                                text: wavelengthAtmosphereSlider.value + qsTr("nm")
+                                                text: (parseFloat(observables.currentAtmosphereWavelength)*1e9).toFixed(1) + qsTr(" nm")
                                                 Layout.fillWidth: true
                                                 horizontalAlignment: Text.AlignHCenter
                                                 color: sysPalette.windowText
@@ -2619,10 +2574,10 @@ ApplicationWindow {
                                                 Layout.columnSpan: 3
                                                 from: 1
                                                 to: observables.numWavelengthsSet
-                                                value: observables.currentAtmosphereWavelength
+                                                value: observables.currentAtmosphereWavelengthIx
                                                 stepSize: 1  
                                                 onValueChanged: {
-                                                    observables.currentAtmosphereWavelength = value;
+                                                    observables.currentAtmosphereWavelengthIx = value;
                                                 }                          
                                             }
 
@@ -2848,7 +2803,7 @@ ApplicationWindow {
                                                 }
 
                                                 Text {
-                                                    text: maskWavelengthSlider.value + qsTr("nm")
+                                                    text: observables.currentPupilWavelength + qsTr(" nm")
                                                     Layout.fillWidth: true
                                                     horizontalAlignment: Text.AlignHCenter
                                                     color: sysPalette.windowText
@@ -2861,10 +2816,10 @@ ApplicationWindow {
                                                     Layout.columnSpan: 3
                                                     from: 1
                                                     to: observables.numWavelengthsSet
-                                                    value: observables.currentPupilWavelength
+                                                    value: observables.currentPupilWavelengthIx
                                                     stepSize: 1  
                                                     onValueChanged: {
-                                                        observables.currentPupilWavelength = value;
+                                                        observables.currentPupilWavelengthIx = value;
                                                     }
                                                 }
 
