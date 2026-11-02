@@ -42,6 +42,15 @@ ApplicationWindow {
         layersModel.rows = tableRows
     }
 
+    JuliaSignals {
+        signal simulationFinishedSignal()
+        onSimulationFinishedSignal: {
+            progressBar.indeterminate = false;
+            progressBar.value = 0.0;
+            runSimulationButton.enabled = true;
+        }
+    }
+
     header: Rectangle{
         id: headerBar
         height: 40
@@ -1971,14 +1980,24 @@ ApplicationWindow {
                     }
 
                     Button {
+                        id: runSimulationButton
                         Layout.preferredHeight: 50
                         Layout.fillWidth: true
                         text: qsTr("Simulate Images")
                         font.bold: true
                         font.pixelSize: 18
                         onClicked: {
+                            progressBar.indeterminate = true;
+                            runSimulationButton.enabled = false;
                             Julia.runHyperspectralSpeckle();
                         }
+                    }
+
+                    ProgressBar {
+                        id: progressBar
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 15
+                        value: 0
                     }
 
                 }
@@ -2115,9 +2134,13 @@ ApplicationWindow {
                                             }
 
                                             ComboBox {
-                                                model: ["Linear", "Log", "Sqrt"]
+                                                model: ["Linear", "Log"]
                                                 currentIndex: 0
                                                 font.pixelSize: 14
+                                                currentValue: observables.imageColorScaling
+                                                onActivated: {
+                                                    observables.imageColorScaling = currentValue;
+                                                }
                                             }
 
                                         }
@@ -2322,9 +2345,13 @@ ApplicationWindow {
                                             }
 
                                             ComboBox {
-                                                model: ["Linear", "Log", "Sqrt"]
+                                                model: ["Linear", "Log"]
                                                 currentIndex: 0
                                                 font.pixelSize: 14
+                                                currentValue: observables.atmosphereColorScaling
+                                                onActivated: {
+                                                    observables.atmosphereColorScaling = currentValue;
+                                                }
                                             }
 
                                         }
@@ -2736,6 +2763,10 @@ ApplicationWindow {
                                                     model: ["Full Aperture", "Wavefront Sensor"]
                                                     currentIndex: 0
                                                     font.pixelSize: 14
+                                                    currentValue: observables.currentPupilView
+                                                    onActivated: {
+                                                        observables.currentPupilView = currentValue;
+                                                    }
                                                 }
 
                                                 Item {
@@ -2803,7 +2834,7 @@ ApplicationWindow {
                                                 }
 
                                                 Text {
-                                                    text: observables.currentPupilWavelength + qsTr(" nm")
+                                                    text: (parseFloat(observables.currentPupilWavelength)*1e9).toFixed(1) + qsTr(" nm")
                                                     Layout.fillWidth: true
                                                     horizontalAlignment: Text.AlignHCenter
                                                     color: sysPalette.windowText
