@@ -10,9 +10,9 @@ ApplicationWindow {
     id: mainGui
     title: "HyperspectralSpeckleGUI"
     width: 1650
-    height: 1075
+    height: 1112
     minimumWidth: 1650
-    minimumHeight: 1075
+    minimumHeight: 1112
     visible: true
 
     property int textFieldWidth: 125
@@ -47,59 +47,120 @@ ApplicationWindow {
         onSimulationFinishedSignal: {
             progressBar.indeterminate = false;
             progressBar.value = 0.0;
+            channelComboBox.currentValue = channelComboBox.currentValue;
             runSimulationButton.enabled = true;
         }
     }
 
     header: Rectangle{
         id: headerBar
-        height: 40
+        height: childrenRect.height
         width: parent.width
         color: sysPalette.mid
         anchors.margins: 5
 
-        Text {
-            id: headerTitle
-            text: qsTr("HyperspectralSpeckle.jl: ")
-            font.pixelSize: 24
-            font.bold: true
-            color: sysPalette.windowText
-            anchors.top: parent.top
+        ColumnLayout {
             anchors.left: parent.left
-            anchors.leftMargin: 5
-            anchors.topMargin: 5
-        }
+            anchors.right: parent.right            
+            spacing: 0
 
-        Text {
-            text: qsTr("Generate full-aperture and WFS images through atmospheric turbulence.")
-            font.pixelSize: 18
-            font.bold: false
-            color: sysPalette.windowText
-            anchors.baseline: headerTitle.baseline
-            anchors.left: headerTitle.right
-            anchors.leftMargin: 5
-            anchors.topMargin: 5
-        }
+            RowLayout {
+                Layout.fillWidth: true
 
-        Text {
-            text: qsTr("Default Datatype: ")
-            color: sysPalette.windowText
-            anchors.rightMargin: 5
-            anchors.right: defaultDatatypeComboBox.left
-            anchors.verticalCenter: parent.verticalCenter
-        }
-        
-        ComboBox {
-            id: defaultDatatypeComboBox
-            implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
-            model: [ "Float32", "Float64" ]
-            currentValue: observables.defaultDatatype
-            anchors.rightMargin: 5
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            onActivated: {
-                observables.defaultDatatype = currentValue;
+                ToolBar {
+                    Layout.fillWidth: true
+
+                    background: Rectangle {
+                        color: sysPalette.mid
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: 1
+                            color: sysPalette.light
+                        }
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+
+                        ToolButton {
+                            text: qsTr("File")
+                        }
+
+                        ToolButton {
+                            text: qsTr("Tools")
+                            onClicked: {
+                                toolsMenu.open()
+                            }
+
+                            Menu {
+                                id: toolsMenu
+                                y: parent.height
+                                
+                                MenuItem {
+                                    text: qsTr("Hyperspectral Target Generator")
+                                }
+                                MenuItem {
+                                    text: qsTr("System Reponse")
+                                }
+                            }
+                        }
+
+                        ToolButton {
+                            text: qsTr("View")
+                        }
+
+                        Item {
+                            Layout.fillWidth: true
+                        }
+                    }
+                }
             }
+
+            RowLayout {
+                Layout.fillWidth: true
+
+                Text {
+                    id: headerTitle
+                    text: qsTr("HyperspectralSpeckle.jl: ")
+                    font.pixelSize: 24
+                    font.bold: true
+                    color: sysPalette.windowText
+                    Layout.margins: 5
+                }
+
+                Text {
+                    text: qsTr("Generate full-aperture and WFS images through atmospheric turbulence.")
+                    font.pixelSize: 18
+                    font.bold: false
+                    color: sysPalette.windowText
+                    Layout.alignment: Qt.AlignBaseline
+                    Layout.margins: 5
+                }
+
+                Item {
+                    Layout.fillWidth: true
+                }
+
+                Text {
+                    text: qsTr("Default Datatype: ")
+                    color: sysPalette.windowText
+                    Layout.alignment: Qt.AlignVCenter
+                }
+                
+                ComboBox {
+                    id: defaultDatatypeComboBox
+                    implicitContentWidthPolicy: ComboBox.WidestTextWhenCompleted
+                    model: [ "Float32", "Float64" ]
+                    currentValue: observables.defaultDatatype
+                    Layout.alignment: Qt.AlignVCenter
+                    onActivated: {
+                        observables.defaultDatatype = currentValue;
+                    }
+                }
+
+            }
+
         }
 
     }
@@ -777,6 +838,10 @@ ApplicationWindow {
                                 verticalAlignment: Text.AlignVCenter
                                 leftPadding: adcCheckBox.indicator.width + adcCheckBox.spacing
                             }
+
+                            onCheckedChanged: {
+                                observables.includeAdc = checked;
+                            }
                         }
                     
                     }
@@ -1437,6 +1502,7 @@ ApplicationWindow {
                             Layout.preferredWidth: textFieldWidth
                             color: sysPalette.windowText
                             placeholderText: qsTr("(Required)")
+                            placeholderTextColor: "crimson"
                         }
 
                         Button {
@@ -1987,9 +2053,11 @@ ApplicationWindow {
                         font.bold: true
                         font.pixelSize: 18
                         onClicked: {
-                            progressBar.indeterminate = true;
-                            runSimulationButton.enabled = false;
-                            Julia.runHyperspectralSpeckle();
+                            if (truthImageTextField.text != "") {
+                                progressBar.indeterminate = true;
+                                runSimulationButton.enabled = false;
+                                Julia.runHyperspectralSpeckle();
+                            }
                         }
                     }
 
@@ -2094,6 +2162,7 @@ ApplicationWindow {
                                             spacing: 5
 
                                             ComboBox {
+                                                id: channelComboBox
                                                 model: ["Full Aperture", "Wavefront Sensor"]
                                                 font.pixelSize: 14
                                                 currentValue: observables.imagesChannelView

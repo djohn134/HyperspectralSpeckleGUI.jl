@@ -275,6 +275,8 @@ module HyperspectralSpeckleGUI
             atmosphereFigure.scene.backgroundcolor[] = parse(Colorant, color)
             pupilFigure.scene.backgroundcolor[] = parse(Colorant, color)
             responseFigure.scene.backgroundcolor[] = parse(Colorant, color)
+            imagesImage.nan_color[] = parse(Colorant, color)
+            atmosphereImage.nan_color[] = parse(Colorant, color)
         end
 
         on(windowText) do color
@@ -454,10 +456,14 @@ module HyperspectralSpeckleGUI
         end
 
         on(imagesChannelView) do channel
-            if channel == "Full Aperture"
+            if channel == "Full Aperture" && enableFullAp[]
                 images = imagesFullAp
-            elseif channel == "Wavefront Sensor"
+            elseif channel == "Wavefront Sensor" && enableWfs[]
                 images = imagesWfs
+            elseif channel == "Full Aperture" && !enableFullAp[]
+                channel = "Wavefront Sensor"
+            elseif channel == "Wavefront Sensor" && !enableWfs[]
+                channel = "Full Aperture"
             end
             currentImage[] = images[:, :, currentImageTimestepIx[]]
             autolimits!(imagesAx)
@@ -504,7 +510,7 @@ module HyperspectralSpeckleGUI
                     wavelengthFullAp[] = isempty(wavelengthFullAp[]) ? wavelengthSet[] : wavelengthFullAp[]
                     response = responseFullAp[] .* ones(numWavelengths[])
                     filterFullAp = OpticalElement(λ=wavelengthFullAp[], response=response, FTYPE=FTYPE)
-                    opticsFullAp = OpticalSystem([filterFullAp], wavelengthSet[], FTYPE=FTYPE)
+                    opticsFullAp = OpticalSystem([filterFullAp], wavelengthSet[], includeAdc=includeAdc[], FTYPE=FTYPE)
                     pixscaleFullAp = fieldOfView[] / imageSizeFullAp[]  # arcsec/pix
                     detectorFullAp = Detector(
                         qe=ones(numWavelengths[]) .* quantumEfficiency[],
@@ -542,7 +548,7 @@ module HyperspectralSpeckleGUI
                     wavelengthWfs[] = isempty(wavelengthWfs[]) ? wavelengthSet[] : wavelengthWfs[]
                     response = responseWfs[] .* ones(numWavelengths[])
                     filterWfs = OpticalElement(λ=wavelengthWfs[], response=response, FTYPE=FTYPE)
-                    opticsWfs = OpticalSystem([filterWfs], wavelengthSet[], FTYPE=FTYPE)
+                    opticsWfs = OpticalSystem([filterWfs], wavelengthSet[], includeAdc=includeAdc[], FTYPE=FTYPE)
                     pixscaleWfs = pixscaleFullAp .* microlensArrayLength[]  # arcsec/pix
                     detectorWfs = Detector(
                         qe=ones(numWavelengths[]) .* quantumEfficiency[],
@@ -568,6 +574,7 @@ module HyperspectralSpeckleGUI
                         nsubexp=1,
                         nsubaps_side=microlensArrayLength[],
                         dim=imageSizeWfs[],
+                        diversity=diversity,
                         build_dim=imageSizeFullAp[],
                         FTYPE=FTYPE,
                         label="Wavefront Sensor"
@@ -639,16 +646,28 @@ module HyperspectralSpeckleGUI
                     end
                 end
 
-                if enableFullAp[]
+                if enableFullAp[] && imagesChannelView[] == "Full Aperture"
                     images = imagesFullAp
                     masks = masksFullAp
                     pupilPositions[] = observationsFullAp.positions
                     currentPupilSize[] = (observationsFullAp.D/2 / atmosphere.sampling_nyquist_mperpix[currentAtmosphereLayerIx[]]) * (nyquistWavelength[] / currentAtmosphereWavelength[])
-                elseif enableWfs[]
+                elseif enableWfs[] && imagesChannelView[] == "Wavefront Sensor"
                     images = imagesWfs
                     masks = masksWfs
                     pupilPositions[] = observationsWfs.positions
                     currentPupilSize[] = (observationsWfs.D/2 / atmosphere.sampling_nyquist_mperpix[currentAtmosphereLayerIx[]]) * (nyquistWavelength[] / currentAtmosphereWavelength[])
+                elseif !enableFullAp[] && imagesChannelView[] == "Full Aperture"
+                    images = imagesWfs
+                    masks = masksWfs
+                    pupilPositions[] = observationsWfs.positions
+                    currentPupilSize[] = (observationsWfs.D/2 / atmosphere.sampling_nyquist_mperpix[currentAtmosphereLayerIx[]]) * (nyquistWavelength[] / currentAtmosphereWavelength[])
+                    imagesChannelView[] == "Wavefront Sensor"
+                elseif !enableWfs[] && imagesChannelView[] == "Wavefront Sensor"
+                    images = imagesFullAp
+                    masks = masksFullAp
+                    pupilPositions[] = observationsFullAp.positions
+                    currentPupilSize[] = (observationsFullAp.D/2 / atmosphere.sampling_nyquist_mperpix[currentAtmosphereLayerIx[]]) * (nyquistWavelength[] / currentAtmosphereWavelength[])
+                    imagesChannelView[] == "Full Aperture"
                 end
 
                 currentImageTimestepIx[] = 1
@@ -657,6 +676,7 @@ module HyperspectralSpeckleGUI
                 autolimits!(imagesAx)
                 notify(imagesFigureObs)
 
+                atmosphere.phase[atmosphere.masks .== 0] .= FTYPE(NaN)
                 currentAtmosphereLayerIx[] = 1
                 currentAtmosphereWavelengthIx[] = 1
                 currentAtmosphereImage[] = atmosphere.phase[:, :, currentAtmosphereLayerIx[], currentAtmosphereWavelengthIx[]]
@@ -665,6 +685,8 @@ module HyperspectralSpeckleGUI
                 notify(atmosphereFigureObs)
 
                 currentPupilImage[] = masks[:, :, currentPupilWavelengthIx[]]
+                autolimits!(pupilAx)
+                notify(pupilFigureObs)
 
                 simulationFinished = true
                 @emit simulationFinishedSignal()
@@ -679,7 +701,6 @@ module HyperspectralSpeckleGUI
         @qmlfunction rotTargetCW90
         @qmlfunction rotTargetCCW90
         @qmlfunction runHyperspectralSpeckle
-
 
         loadqml(joinpath(dirname(@__FILE__), "MainGui.qml"), observables=observables)
         exec()
