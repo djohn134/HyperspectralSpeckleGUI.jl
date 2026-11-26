@@ -42,6 +42,9 @@ ApplicationWindow {
         layersModel.rows = tableRows
     }
 
+    property var objectWavelengthComponent: Qt.createComponent("ObjectWavelengthPrompt.qml");
+    property var objectWavelengthWindow
+
     JuliaSignals {
         signal simulationFinishedSignal()
         onSimulationFinishedSignal: {
@@ -443,7 +446,7 @@ ApplicationWindow {
                                 id: qeUniformTextField
                                 Layout.preferredWidth: textFieldWidth
                                 color: sysPalette.windowText
-                                text: observables.quantumEfficiency
+                                text: (observables.quantumEfficiency.length == 1) ? observables.quantumEfficiency[0] : ""
                                 validator: DoubleValidator {
                                     bottom: 0
                                     top: 1
@@ -1519,6 +1522,10 @@ ApplicationWindow {
                                 var pathToFile = selectedFile.toString().replace("file://", "");
                                 truthImageTextField.text = pathToFile;
                                 Julia.loadTruthImage(pathToFile);
+                                if (objectWavelengthComponent.status === Component.Ready) {
+                                    objectWavelengthWindow = objectWavelengthComponent.createObject();
+                                    objectWavelengthWindow.show();
+                                }
                             }
                         }
 
@@ -3020,13 +3027,27 @@ ApplicationWindow {
                         Layout.fillWidth: true
 
                         TextField {
+                            id: outputFolderTextField
                             Layout.fillWidth: true
                             text: observables.saveDirectory
+                            onEditingFinished: {
+                                observables.saveDirectory = text.toString();
+                            }
+                        }
+
+                        FolderDialog {
+                            id: outputFolderDialog
+                            onAccepted: {
+                                observables.saveDirectory = selectedFolder.toString().replace("file://", "");
+                            }
                         }
 
                         Button {
                             icon.source: "assets/folder.png"
                             icon.color: sysPalette.windowText
+                            onClicked: {
+                                outputFolderDialog.open()
+                            }
                         }
                     }
 
@@ -3051,6 +3072,9 @@ ApplicationWindow {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.preferredHeight: 50
                         Layout.preferredWidth: 150
+                        onClicked: {
+                            Julia.saveImages();
+                        }
                     }
 
                 }

@@ -32,14 +32,14 @@ module HyperspectralSpeckleGUI
         gain = @lift(($DTYPE <: AbstractFloat) ? 1.0 : Float64($wellDepth) / Float64(typemax($DTYPE)))
         exposureTime = Observable{Float64}(5.0e-3)
         quantumEfficiencyWavelength = Observable{AbstractVector{Float64}}([])
-        quantumEfficiency = Observable{AbstractVector{Float64}}([0.8])
+        quantumEfficiency = Observable{Union{Float64, AbstractVector{Float64}}}([0.8])
         wfsType = Observable{String}("Shack-Hartmann")
         microlensArrayLength = Observable{Int64}(6)
         numSubaps = Observable{Int64}(1)
         wavelengthFullAp = Observable{AbstractVector{Float64}}([])
-        responseFullAp = Observable{AbstractVector{Float64}}([0.5])
+        responseFullAp = Observable{Union{Float64, AbstractVector{Float64}}}([0.5])
         wavelengthWfs = Observable{AbstractVector{Float64}}([])
-        responseWfs = Observable{AbstractVector{Float64}}([0.5])
+        responseWfs = Observable{Union{Float64, AbstractVector{Float64}}}([0.5])
         includeAdc = Observable{Bool}(true)
         refWavelength = Observable{Float64}(500.0e-9)
         Dr0 = Observable{Float64}(20.0)
@@ -61,6 +61,7 @@ module HyperspectralSpeckleGUI
         truthTarget = Observable{Array{Float64, 3}}(zeros(Float64, 1, 1, 1))
         truthTargetWavelengths = Observable{AbstractVector{Float64}}([NaN])
         truthTargetLoaded = false
+        objectIsGreybody = Observable{Bool}(true)
         includeNoise = Observable{Bool}(true)
         propagateLayers = Observable{Bool}(true)
         simulateAnisoplanatic = Observable{Bool}(true)
@@ -95,10 +96,14 @@ module HyperspectralSpeckleGUI
         masksFullAp = []
         masksWfs = []
         masks = []
+        object = []
+        observationsFullAp = []
+        observationsWfs = []
 
         # GUI Status Parameters
         currentTargetWavelengthIx = Observable{Int64}(1)
         currentTargetWavelength = @lift($truthTargetWavelengths[$currentTargetWavelengthIx])
+        currentTargetSetWavelengthIx = Observable{Int64}(1)
         currentImageTimestepIx = Observable{Int64}(1)
         currentImageTimestep = @lift($timestepsSet[$currentImageTimestepIx])
         currentImageSubapIx = Observable{Int64}(1)
@@ -132,6 +137,15 @@ module HyperspectralSpeckleGUI
         targetColorbar = Colorbar(targetFigure[1, 2], targetImage)
         hidedecorations!(targetAx)
         targetFigureObs = Observable(targetFigure)
+
+        currentSetTargetColormap = Observable{String}("grays")
+        setImageRotation = Observable{Float64}(0.0)
+        setTargetFigure = Figure(figure_padding=10)
+        setTargetAx = Axis(setTargetFigure[1, 1], aspect = AxisAspect(1.0))
+        setTargetImage = heatmap!(setTargetAx, truthTargetImage, colormap = Symbol(currentSetTargetColormap[]))
+        setTargetColorbar = Colorbar(setTargetFigure[1, 2], setTargetImage)
+        hidedecorations!(setTargetAx)
+        targetSetWavelengthFigureObs = Observable(setTargetFigure)
 
         imageColorScaling = Observable{String}("Linear")
         currentImagesColormap = Observable{String}("grays")
@@ -206,6 +220,7 @@ module HyperspectralSpeckleGUI
             "diversityPeriod" => diversityPeriod,
             "referenceTime" => referenceTime,
             "targetBrightness" => targetBrightness,
+            "objectIsGreybody" => objectIsGreybody,
             "backgroundBrightness" => backgroundBrightness,
             "targetRange" => targetRange,
             "propagateLayers" => propagateLayers,
@@ -229,6 +244,7 @@ module HyperspectralSpeckleGUI
 
             "availableColormaps" => availableColormaps,
             "currentTargetColormap" => currentTargetColormap,
+            "currentSetTargetColormap" => currentSetTargetColormap,
             "currentImagesColormap" => currentImagesColormap,
             "imageColorScaling" => imageColorScaling,
             "currentAtmosphereColormap" => currentAtmosphereColormap,
@@ -236,6 +252,7 @@ module HyperspectralSpeckleGUI
             "currentPupilColormap" => currentPupilColormap,
 
             "targetFigureObs" => targetFigureObs,
+            "targetSetWavelengthFigureObs" => targetSetWavelengthFigureObs,
             "imagesFigureObs" => imagesFigureObs,
             "atmosphereFigureObs" => atmosphereFigureObs,
             "pupilFigureObs" => pupilFigureObs,
@@ -251,6 +268,7 @@ module HyperspectralSpeckleGUI
             "truthTargetWavelengths" => truthTargetWavelengths,
             "currentTargetWavelengthIx" => currentTargetWavelengthIx,
             "currentTargetWavelength" => currentTargetWavelength,
+            "currentTargetSetWavelengthIx" => currentTargetSetWavelengthIx,
             "currentImageTimestepIx" => currentImageTimestepIx,
             "currentImageTimestep" => currentImageTimestep,
             "currentImageSubapIx" => currentImageSubapIx,
@@ -271,6 +289,7 @@ module HyperspectralSpeckleGUI
 
         on(windowColor) do color
             targetFigure.scene.backgroundcolor[] = parse(Colorant, color)
+            setTargetFigure.scene.backgroundcolor[] = parse(Colorant, color)
             imagesFigure.scene.backgroundcolor[] = parse(Colorant, color)
             atmosphereFigure.scene.backgroundcolor[] = parse(Colorant, color)
             pupilFigure.scene.backgroundcolor[] = parse(Colorant, color)
@@ -282,6 +301,8 @@ module HyperspectralSpeckleGUI
         on(windowText) do color
             targetColorbar.ticklabelcolor = parse(Colorant, color)
             targetColorbar.tickcolor = parse(Colorant, color)
+            setTargetColorbar.ticklabelcolor = parse(Colorant, color)
+            setTargetColorbar.tickcolor = parse(Colorant, color)
             imagesColorbar.ticklabelcolor = parse(Colorant, color)
             imagesColorbar.tickcolor = parse(Colorant, color)
             pupilColorbar.ticklabelcolor = parse(Colorant, color)
@@ -293,6 +314,11 @@ module HyperspectralSpeckleGUI
             targetAx.leftspinecolor = parse(Colorant, color)
             targetAx.topspinecolor = parse(Colorant, color)
             targetAx.rightspinecolor = parse(Colorant, color)
+
+            setTargetAx.bottomspinecolor = parse(Colorant, color)
+            setTargetAx.leftspinecolor = parse(Colorant, color)
+            setTargetAx.topspinecolor = parse(Colorant, color)
+            setTargetAx.rightspinecolor = parse(Colorant, color)
 
             imagesAx.bottomspinecolor = parse(Colorant, color)
             imagesAx.leftspinecolor = parse(Colorant, color)
@@ -327,6 +353,7 @@ module HyperspectralSpeckleGUI
             xlims!(targetAx, [0, size(truthTargetImage[], 2)])
             ylims!(targetAx, [0, size(truthTargetImage[], 1)])
             notify(targetFigureObs)
+            notify(targetSetWavelengthFigureObs)
             truthTargetLoaded = true
         end
 
@@ -374,9 +401,34 @@ module HyperspectralSpeckleGUI
             notify(targetFigureObs)
         end
 
+        function rotSetTargetCW90()
+            setImageRotation[] += -π/2
+        end
+
+        function rotSetTargetCCW90()
+            setImageRotation[] += π/2
+        end
+
+        function applyObjectWavelengths(greybody, lowerWavelength, upperWavelength)
+            objectIsGreybody[] = greybody
+            truthTargetWavelengths[] = (objectIsGreybody[] || (numWavelengthsTarget[] == 1)) ? [NaN] : collect(range(lowerWavelength, stop=upperWavelength, length=numWavelengthsTarget[]))
+            imageRotation[] = setImageRotation[]
+        end
+
+        on(setImageRotation) do ang
+            Makie.rotate!(setTargetImage, ang)
+            autolimits!(setTargetAx)
+            notify(targetSetWavelengthFigureObs)
+        end
+
         on(currentTargetColormap) do cmap
             targetImage.colormap = Symbol(cmap)
             notify(targetFigureObs)
+        end
+
+        on(currentSetTargetColormap) do cmap
+            setTargetImage.colormap = Symbol(cmap)
+            notify(targetSetWavelengthFigureObs)
         end
 
         on(currentImagesColormap) do cmap
@@ -432,10 +484,6 @@ module HyperspectralSpeckleGUI
             end
         end
 
-        # on(currentImage) do ~
-        #     notify(imagesFigureObs)
-        # end
-
         on(framesPlaying) do ~
             Threads.@spawn while framesPlaying[]
                 startTime = time()
@@ -484,6 +532,28 @@ module HyperspectralSpeckleGUI
             currentAtmosphereImage[] = atmosphere.phase[:, :, ix, currentAtmosphereWavelengthIx[]]
             autolimits!(atmosphereAx)
             notify(atmosphereFigureObs)
+        end
+
+        function saveImages()
+            if simulationFinished[]
+                folder = saveDirectory[]
+                id = runId[]
+                header = create_header(wavelengthSet[], units="ph/s/m^2/m")
+                writefits(object.object, "$(folder)/object_truth_spectral-$(id).fits", header=header)
+                header = create_header(wavelengthSet[], units="ph/s/m^2")
+                writefits(dropdims(sum(object.object, dims=3), dims=3)*spacingWavelength[], "$(folder)/object_truth_sum-$(id).fits", header=header)
+
+                header = create_header(wavelengthSet[], units="rad")
+                writefits(atmosphere.phase, "$(folder)/Dr0_$(round(Int64, Dr0[]))_phase_full-$(id).fits", header=header)
+
+                if enableFullAp[]
+                    writefits(observationsFullAp.images, "$(folder)/imagesFullAp-$(id).fits", header=create_header(observationsFullAp), times=observationsFullAp.times)
+                end
+
+                if enableWfs[]
+                    writefits(observationsWfs.images, "$(folder)/imagesWfs-$(id).fits", header=create_header(observationsWfs), times=observationsWfs.times)
+                end
+            end
         end
 
         function runHyperspectralSpeckle()
@@ -700,7 +770,11 @@ module HyperspectralSpeckleGUI
         @qmlfunction loadAtmosphericTransmissionData
         @qmlfunction rotTargetCW90
         @qmlfunction rotTargetCCW90
+        @qmlfunction rotSetTargetCW90
+        @qmlfunction rotSetTargetCCW90
+        @qmlfunction applyObjectWavelengths
         @qmlfunction runHyperspectralSpeckle
+        @qmlfunction saveImages
 
         loadqml(joinpath(dirname(@__FILE__), "MainGui.qml"), observables=observables)
         exec()
